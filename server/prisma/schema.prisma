@@ -1,0 +1,391 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// User account model
+model User {
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  passwordHash         String
+  name                 String?
+  avatar               String?
+  emailVerified        Boolean   @default(false)
+  emailVerifiedAt      DateTime?
+  subscriptionPlan     SubscriptionPlan @default(FREE)
+  preferences          Json?
+  passwordChangedAt    DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
+
+  // Relations
+  refreshTokens        RefreshToken[]
+  passwordResetTokens  PasswordResetToken[]
+  ideaSessions         IdeaSession[]
+  subscriptions        Subscription[]
+  aiUsageLogs          AIUsageLog[]
+  marketingAttribution MarketingAttribution?
+  billingAudits        BillingAudit[]
+  notificationTokens   NotificationToken[]
+  notifications        Notification[]
+  analyticsEvents      AnalyticsEvent[]
+  auditLogs            AuditLog[]
+
+  @@index([email])
+  @@index([createdAt])
+  @@map("users")
+}
+
+// Refresh token for JWT authentication
+model RefreshToken {
+  id               String   @id @default(uuid())
+  token            String   @unique
+  userId           String
+  deviceFingerprint String?
+  ipAddress        String?
+  userAgent        String?
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  revokedAt        DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// Password reset token
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+// Idea session (main idea/conversation container)
+model IdeaSession {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String   @db.Text
+  category    IdeaCategory
+  status      IdeaStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  archivedAt  DateTime?
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    IdeaMessage[]
+  aiUsageLogs AIUsageLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+  @@map("idea_sessions")
+}
+
+// Individual messages within an idea session
+model IdeaMessage {
+  id            String   @id @default(uuid())
+  ideaSessionId String
+  role          MessageRole
+  content       String   @db.Text
+  tokens        Int?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  ideaSession IdeaSession  @relation(fields: [ideaSessionId], references: [id], onDelete: Cascade)
+  aiUsageLog  AIUsageLog?
+
+  @@index([ideaSessionId])
+  @@index([role])
+  @@index([createdAt])
+  @@map("idea_messages")
+}
+
+// Subscription/billing information
+model Subscription {
+  id                   String   @id @default(uuid())
+  userId               String
+  plan                 SubscriptionPlan @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  provider             SubscriptionProvider?
+  externalId           String?  @unique // Apple/Google transaction ID
+  startDate            DateTime?
+  endDate              DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean  @default(false)
+  cancelledAt          DateTime?
+  renewedAt            DateTime?
+  metadata             Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([plan])
+  @@index([externalId])
+  @@map("subscriptions")
+}
+
+// AI usage tracking for cost management
+model AIUsageLog {
+  id             String   @id @default(uuid())
+  userId         String
+  ideaSessionId  String?
+  ideaMessageId  String?  @unique
+  model          String
+  promptTokens   Int
+  completionTokens Int
+  totalTokens    Int
+  costUsd        Float
+  latencyMs      Int
+  cached         Boolean  @default(false)
+  error          String?
+  createdAt      DateTime @default(now())
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ideaSession IdeaSession? @relation(fields: [ideaSessionId], references: [id], onDelete: SetNull)
+  ideaMessage IdeaMessage? @relation(fields: [ideaMessageId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([ideaSessionId])
+  @@index([createdAt])
+  @@index([model])
+  @@map("ai_usage_logs")
+}
+
+// Marketing attribution for CAC tracking
+model MarketingAttribution {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  utmTerm      String?
+  utmContent   String?
+  referrer     String?
+  landingPage  String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([utmSource])
+  @@index([utmCampaign])
+  @@index([createdAt])
+  @@map("marketing_attributions")
+}
+
+// Billing audit trail
+model BillingAudit {
+  id                   String   @id @default(uuid())
+  userId               String
+  action               BillingAction
+  amount               Float?
+  currency             String?
+  externalEventId      String?  @unique
+  metadata             Json?
+  ipAddress            String?
+  userAgent            String?
+  createdAt            DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([externalEventId])
+  @@index([createdAt])
+  @@map("billing_audits")
+}
+
+// Push notification tokens
+model NotificationToken {
+  id         String   @id @default(uuid())
+  userId     String
+  token      String   @unique
+  platform   NotificationPlatform
+  deviceId   String?
+  deviceName String?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastUsedAt DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([platform])
+  @@index([active])
+  @@map("notification_tokens")
+}
+
+// Notifications sent to users
+model Notification {
+  id       String   @id @default(uuid())
+  userId   String
+  type     NotificationType
+  title    String
+  body     String   @db.Text
+  data     Json?
+  read     Boolean  @default(false)
+  sentAt   DateTime @default(now())
+  readAt   DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([read])
+  @@index([sentAt])
+  @@map("notifications")
+}
+
+// Analytics events
+model AnalyticsEvent {
+  id           String   @id @default(uuid())
+  userId       String?
+  sessionId    String
+  eventName    String
+  eventCategory String
+  properties   Json?
+  platform     String?
+  appVersion   String?
+  deviceId     String?
+  ipAddress    String?
+  userAgent    String?
+  timestamp    DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([eventName])
+  @@index([eventCategory])
+  @@index([timestamp])
+  @@map("analytics_events")
+}
+
+// Audit log for user actions
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Enums
+enum IdeaCategory {
+  BUSINESS
+  TECHNOLOGY
+  CREATIVE
+  SOCIAL_IMPACT
+  EDUCATION
+  HEALTH
+  ENTERTAINMENT
+  OTHER
+}
+
+enum IdeaStatus {
+  ACTIVE
+  ARCHIVED
+  COMPLETED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+  UNPAID
+}
+
+enum SubscriptionProvider {
+  APPLE
+  GOOGLE
+}
+
+enum BillingAction {
+  SUBSCRIPTION_CREATED
+  SUBSCRIPTION_UPDATED
+  SUBSCRIPTION_CANCELED
+  SUBSCRIPTION_RENEWED
+  PAYMENT_SUCCEEDED
+  PAYMENT_FAILED
+  REFUND_ISSUED
+  CHECKOUT_STARTED
+  CHECKOUT_COMPLETED
+  CHECKOUT_ABANDONED
+  PORTAL_ACCESSED
+}
+
+enum NotificationPlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+enum NotificationType {
+  IDEA_RESPONSE
+  QUOTA_WARNING
+  QUOTA_EXCEEDED
+  SUBSCRIPTION_EXPIRING
+  SUBSCRIPTION_RENEWED
+  PAYMENT_FAILED
+  WELCOME
+  FEATURE_ANNOUNCEMENT
+  SYSTEM
+}

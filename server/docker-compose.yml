@@ -1,0 +1,125 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: ideaspark-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ideaspark_dev
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --locale=en_US.UTF-8'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ideaspark-network
+
+  # PostgreSQL Test Database
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: ideaspark-postgres-test
+    restart: unless-stopped
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ideaspark_test
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --locale=en_US.UTF-8'
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ideaspark-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ideaspark-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes --requirepass ""
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ideaspark-network
+
+  # Mailhog (Email Testing)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: ideaspark-mailhog
+    restart: unless-stopped
+    ports:
+      - '1025:1025' # SMTP port
+      - '8025:8025' # Web UI port
+    networks:
+      - ideaspark-network
+
+  # pgAdmin (PostgreSQL GUI)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ideaspark-pgadmin
+    restart: unless-stopped
+    ports:
+      - '5050:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ideaspark.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - ideaspark-network
+
+  # RedisInsight (Redis GUI)
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    container_name: ideaspark-redis-insight
+    restart: unless-stopped
+    ports:
+      - '8001:8001'
+    volumes:
+      - redis_insight_data:/db
+    depends_on:
+      - redis
+    networks:
+      - ideaspark-network
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_test_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  redis_insight_data:
+    driver: local
+
+networks:
+  ideaspark-network:
+    driver: bridge

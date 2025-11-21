@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Keep environment variables out of version control - CRITICAL!
+.env
+.env.*
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.staging
+!.env.example
+!.env.test
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Testing
+coverage/
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Prisma
+.prisma/
+
+# Supabase
+.supabase/
+
+# Firebase service account credentials
+firebase-admin-sdk.json
+*-firebase-adminsdk-*.json

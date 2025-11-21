@@ -1,0 +1,238 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # Lint and type check
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies (root)
+        run: npm ci
+
+      - name: Install dependencies (server)
+        run: cd server && npm ci
+
+      - name: Lint root
+        run: npm run lint
+
+      - name: Lint server
+        run: cd server && npm run lint
+
+      - name: Type check server
+        run: cd server && npm run typecheck
+
+  # Backend tests
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ideaspark_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: cd server && npm ci
+
+      - name: Generate Prisma Client
+        run: cd server && npx prisma generate
+
+      - name: Run migrations
+        run: cd server && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ideaspark_test
+
+      - name: Run tests
+        run: cd server && npm test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ideaspark_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret-min-32-chars-long-for-testing
+          JWT_REFRESH_SECRET: test-refresh-secret-min-32-chars-long-for-testing
+          SESSION_SECRET: test-session-secret-min-32-chars-long-for-testing
+          OPENAI_API_KEY: sk-test-key-not-real
+          NODE_ENV: test
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./server/coverage/lcov.info
+          flags: backend
+
+  # Build Docker image
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [lint, test-backend]
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: false
+          tags: ideaspark-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://staging-api.ideaspark.app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Railway (Staging)
+        run: |
+          npm i -g @railway/cli
+          railway link ${{ secrets.RAILWAY_STAGING_PROJECT_ID }}
+          railway up --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Run database migrations
+        run: |
+          railway run npx prisma migrate deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Run smoke tests
+        run: |
+          curl -f https://staging-api.ideaspark.app/health || exit 1
+          curl -f https://staging-api.ideaspark.app/health/detailed || exit 1
+
+      - name: Notify deployment
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Staging deployment ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Deploy to production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://api.ideaspark.app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Railway (Production)
+        run: |
+          npm i -g @railway/cli
+          railway link ${{ secrets.RAILWAY_PRODUCTION_PROJECT_ID }}
+          railway up --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Run database migrations
+        run: |
+          railway run npx prisma migrate deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Wait for deployment
+        run: sleep 45
+
+      - name: Run smoke tests
+        run: |
+          curl -f https://api.ideaspark.app/health || exit 1
+          curl -f https://api.ideaspark.app/health/detailed || exit 1
+          curl -f https://api.ideaspark.app/api/v1 || exit 1
+
+      - name: Notify deployment
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Create Sentry release
+        if: success()
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ideaspark-api
+        with:
+          environment: production
+          version: ${{ github.sha }}
