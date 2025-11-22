@@ -30,13 +30,12 @@ import {
   User,
   AlertTriangle,
 } from "lucide-react-native";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { GradientBackground, GlassCard, AnimatedOrb } from "@/components/ui";
 import { SafeButton, SafeInput, SafeFormControl, SafeAlert } from "@/components/SafeGluestack";
-import * as Sentry from "@sentry/react-native";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -225,7 +224,8 @@ export default function AuthScreen() {
         <GradientBackground variant="primary">
           <KeyboardAvoidingView
             style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            behavior="position"
+            keyboardVerticalOffset={0}
           >
             <ScrollView
               contentContainerStyle={{ flexGrow: 1 }}
@@ -245,7 +245,8 @@ export default function AuthScreen() {
       <GradientBackground variant="primary">
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior="position"
+          keyboardVerticalOffset={0}
         >
           <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
@@ -508,21 +509,6 @@ export default function AuthScreen() {
                   </SafeButton>
                 </VStack>
               </GlassCard>
-
-              {/* Sentry Test Button - TEMPORARY */}
-              <Center mt="$4">
-                <SafeButton
-                  size="sm"
-                  variant="outline"
-                  onPress={() => {
-                    Sentry.captureException(new Error('First error'));
-                    toast.success('Test Sent!', 'Check Sentry dashboard');
-                  }}
-                  accessibilityLabel="Test Sentry error tracking"
-                >
-                  <ButtonText>🧪 Test Sentry</ButtonText>
-                </SafeButton>
-              </Center>
 
               {/* Switch Mode */}
               <Center mt="$6">

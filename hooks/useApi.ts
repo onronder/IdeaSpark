@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import apiClient, { ApiResponse } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 // Import types from the shared types package
 import type {

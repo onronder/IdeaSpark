@@ -1,5 +1,5 @@
 import { Stack, Redirect, Tabs } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from '@/contexts/ThemeContext';
 import { Home, MessageSquare, User, Sparkles } from 'lucide-react-native';
 

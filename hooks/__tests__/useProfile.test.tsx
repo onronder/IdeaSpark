@@ -10,7 +10,7 @@ import {
   useUserStats,
 } from '../useProfile';
 import api from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useToast } from '@/contexts/ToastContext';
 import * as ImagePicker from 'expo-image-picker';
 

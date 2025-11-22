@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { iapService, PurchaseStatus } from '@/services/iapService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 // Hook to check subscription status
 export function useSubscriptionStatus() {

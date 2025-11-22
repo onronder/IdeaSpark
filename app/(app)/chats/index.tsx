@@ -21,7 +21,7 @@ import {
   Plus,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useIdeas } from '@/hooks/useApi';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

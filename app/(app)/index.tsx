@@ -39,7 +39,7 @@ import {
   Zap,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useCreateIdea, useUsageSummary } from '@/hooks/useApi';
 import { useToast } from '@/contexts/ToastContext';

@@ -38,7 +38,7 @@ import {
   AlertTriangle,
 } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useIdea, useMessages, useSendMessage, useUsageSummary } from '@/hooks/useApi';
 import { useToast } from '@/contexts/ToastContext';

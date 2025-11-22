@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import "@/global.css";
 import * as Sentry from '@sentry/react-native';
 import { initSentry, SentryErrorBoundary, captureException, setUser } from "@/sentry.config";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { SupabaseAuthProvider as AuthProvider, useAuth } from "@/contexts/SupabaseAuthContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

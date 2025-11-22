@@ -46,7 +46,7 @@ import {
 } from 'lucide-react-native';
 import { Platform, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { iapService, IAPError, IAPErrorType } from '@/services/iapService';

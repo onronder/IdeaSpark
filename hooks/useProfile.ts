@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useToast } from '@/contexts/ToastContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
