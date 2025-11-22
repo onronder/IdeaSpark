@@ -45,7 +45,7 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="chats"
+        name="chats/index"
         options={{
           title: 'Chats',
           tabBarIcon: ({ color, size }) => (

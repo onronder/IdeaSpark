@@ -199,20 +199,27 @@ export function useGluestackPerformanceMonitor(componentName: string) {
   const renderStartTime = React.useRef<number>(0);
 
   React.useEffect(() => {
+    // In development, rendering is intentionally slower and more noisy.
+    // Avoid spamming logs and Sentry with perf warnings.
+    if (__DEV__) {
+      return;
+    }
+
     renderStartTime.current = performance.now();
 
     return () => {
       const renderEndTime = performance.now();
       const renderDuration = renderEndTime - renderStartTime.current;
 
-      // Log slow renders (> 16ms for 60fps)
-      if (renderDuration > 16) {
+      // Log slow renders only when meaningfully slow in production
+      const thresholdMs = 100;
+      if (renderDuration > thresholdMs) {
         logger.warn('Slow render detected', {
           component: componentName,
           duration: `${renderDuration.toFixed(2)}ms`,
-          threshold: '16ms',
+          threshold: `${thresholdMs}ms`,
         });
       }
     };
-  });
+  }, [componentName, logger]);
 }

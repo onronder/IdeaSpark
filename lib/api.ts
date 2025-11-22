@@ -1,9 +1,8 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
 import { parseApiError } from '@/utils/errorHandler';
 import { logger } from '@/hooks/useLogger';
 import { addBreadcrumb } from '@/sentry.config';
+import { supabase } from '@/lib/supabase';
 
 // Set logger component
 logger.setComponent('ApiClient');
@@ -31,12 +30,6 @@ interface ApiResponse<T = any> {
   meta?: any;
 }
 
-// Storage keys
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: '@ideaspark:access_token',
-  REFRESH_TOKEN: '@ideaspark:refresh_token',
-};
-
 import config from '@/config';
 
 // API base URL from config
@@ -44,8 +37,6 @@ const API_BASE_URL = config.apiUrl;
 
 class ApiClient {
   private instance: AxiosInstance;
-  private isRefreshing: boolean = false;
-  private refreshSubscribers: Array<(token: string) => void> = [];
 
   constructor() {
     this.instance = axios.create({
@@ -63,7 +54,8 @@ class ApiClient {
     // Request interceptor to add auth token
     this.instance.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
-        const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token || null;
 
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -89,7 +81,7 @@ class ApiClient {
       }
     );
 
-    // Response interceptor to handle token refresh
+    // Response interceptor to log errors
     this.instance.interceptors.response.use(
       (response) => {
         // Log successful response
@@ -116,89 +108,9 @@ class ApiClient {
           error: parsedError,
         });
 
-        // Handle 401 errors (unauthorized)
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          if (this.isRefreshing) {
-            // If already refreshing, queue this request
-            return new Promise((resolve) => {
-              this.refreshSubscribers.push((token: string) => {
-                if (originalRequest.headers) {
-                  originalRequest.headers.Authorization = `Bearer ${token}`;
-                }
-                resolve(this.instance(originalRequest));
-              });
-            });
-          }
-
-          originalRequest._retry = true;
-          this.isRefreshing = true;
-
-          try {
-            const newToken = await this.refreshToken();
-            this.onRefreshed(newToken);
-            logger.info('Token refreshed successfully');
-
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            }
-
-            return this.instance(originalRequest);
-          } catch (refreshError) {
-            // Refresh failed, redirect to login
-            logger.error('Token refresh failed', refreshError, {
-              willRedirect: true,
-            });
-            await this.clearAuth();
-            router.replace('/(auth)/');
-            return Promise.reject(refreshError);
-          } finally {
-            this.isRefreshing = false;
-            this.refreshSubscribers = [];
-          }
-        }
-
         return Promise.reject(error);
       }
     );
-  }
-
-  private async refreshToken(): Promise<string> {
-    const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
-    const response = await axios.post<ApiResponse<{ accessToken: string; refreshToken: string }>>(
-      `${API_BASE_URL}/api/v1/auth/refresh`,
-      { refreshToken }
-    );
-
-    if (!response.data.success || !response.data.data) {
-      throw new Error('Token refresh failed');
-    }
-
-    const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-
-    // Update stored tokens
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken),
-      AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken),
-    ]);
-
-    return accessToken;
-  }
-
-  private onRefreshed(token: string) {
-    this.refreshSubscribers.forEach(callback => callback(token));
-  }
-
-  private async clearAuth() {
-    await Promise.all([
-      AsyncStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN),
-      AsyncStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
-      AsyncStorage.removeItem('@ideaspark:user'),
-    ]);
   }
 
   // Public methods for API calls

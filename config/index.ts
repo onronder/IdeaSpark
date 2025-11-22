@@ -5,7 +5,7 @@ const ENV = Constants.expoConfig?.extra?.env || 'development';
 
 // API URLs for different environments
 const API_URLS = {
-  development: 'http://localhost:3001',
+  development: 'https://ideaspark-production.up.railway.app',
   staging: 'https://api-staging.ideaspark.com',
   production: 'https://api.ideaspark.com',
 };

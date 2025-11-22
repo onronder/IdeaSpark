@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { User, Subscription } from '@prisma/client';
+import jwt from 'jsonwebtoken';
 import { AuthService } from '../services/auth.service';
 import { prisma } from '../utils/database';
 import { ApiError } from '../utils/errors';
 import { cache } from '../utils/redis';
 import { CacheKeys, CacheTTL } from '../utils/cache-helpers';
+import { config } from '../config';
 
 declare global {
   namespace Express {
@@ -40,11 +42,35 @@ export async function authenticate(
       throw new ApiError(401, 'Token has been revoked', 'TOKEN_REVOKED');
     }
 
-    // Verify token
-    const payload = AuthService.verifyToken(token, 'access');
+    // Determine userId from either our own JWT or Supabase JWT
+    let userId: string | null = null;
+
+    // First, try verifying as our own backend-issued JWT (for legacy clients/tools)
+    try {
+      const payload = AuthService.verifyToken(token, 'access');
+      userId = payload.userId;
+    } catch (_err) {
+      // If Supabase JWT secret is configured, attempt to treat token as Supabase access token
+      if (config.supabase.jwtSecret) {
+        try {
+          const supabasePayload = jwt.verify(token, config.supabase.jwtSecret) as any;
+          // Supabase JWT typically encodes user id in `sub`
+          userId = (supabasePayload.sub || supabasePayload.user_id || supabasePayload.id) as string | null;
+        } catch {
+          throw new ApiError(401, 'Invalid token', 'TOKEN_INVALID');
+        }
+      } else {
+        // No Supabase secret configured and backend JWT verification failed
+        throw new ApiError(401, 'Invalid token', 'TOKEN_INVALID');
+      }
+    }
+
+    if (!userId) {
+      throw new ApiError(401, 'Invalid token', 'TOKEN_INVALID');
+    }
 
     // Check user cache first - using production-grade key pattern and TTL
-    const cacheKey = CacheKeys.user(payload.userId);
+    const cacheKey = CacheKeys.user(userId);
     const cachedUser = await cache.get(cacheKey);
 
     let user: (User & { subscriptions: Subscription[] }) | null;
@@ -54,13 +80,13 @@ export async function authenticate(
     } else {
       // Get user from database
       user = await prisma.user.findUnique({
-        where: { id: payload.userId },
+        where: { id: userId },
         include: { subscriptions: true },
       });
 
       if (user && !user.deletedAt) {
         // Cache for 2 minutes (120s as per best practices)
-        await cache.set(cacheKey, JSON.stringify(user), CacheTTL.USER_PROFILE);
+      await cache.set(cacheKey, JSON.stringify(user), CacheTTL.USER_PROFILE);
       }
     }
 

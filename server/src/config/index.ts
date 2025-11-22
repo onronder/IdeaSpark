@@ -59,6 +59,9 @@ const envSchema = z.object({
   // Analytics
   AMPLITUDE_API_KEY: z.string().optional(),
 
+  // Supabase Auth
+  SUPABASE_JWT_SECRET: z.string().optional(),
+
   // CORS
   CORS_ORIGINS: z.string().default('http://localhost:8081'),
 
@@ -177,6 +180,11 @@ export const config = {
   // Analytics
   analytics: {
     amplitudeApiKey: env.AMPLITUDE_API_KEY,
+  },
+
+  // Supabase
+  supabase: {
+    jwtSecret: env.SUPABASE_JWT_SECRET,
   },
 
   // CORS

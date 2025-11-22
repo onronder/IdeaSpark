@@ -9,7 +9,8 @@ import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw } from "lucide-react-native";
 import { useLogger } from "@/hooks/useLogger";
-import { GluestackUIProvider, Box, VStack, Center, Text, Button, ButtonText, ButtonIcon, Icon } from "@gluestack-ui/themed";
+import { GluestackUIProvider, Box, Center, VStack, Text } from "@gluestack-ui/themed";
+import { View, Text as RNText, TouchableOpacity } from "react-native";
 import { gluestackUIConfig } from "@/gluestack-ui.config";
 import { notificationService } from "@/services/notificationService";
 import { useRouter } from "expo-router";
@@ -45,34 +46,46 @@ function ErrorFallback({ error, resetError }: { error: Error; resetError: () => 
   }, [error]);
 
   return (
-    <Box flex={1} bg="$white" px="$6">
-      <Center flex={1}>
-        <VStack space="md" bg="$error50" p="$6" borderRadius="$2xl" alignItems="center" maxWidth={400}>
-          <Icon as={AlertTriangle} size="xl" color="$error600" />
-          <Text size="xl" fontWeight="$bold" color="$textLight900" mt="$4">
+    <View style={{ flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 24 }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View
+          style={{
+            backgroundColor: '#fee2e2',
+            padding: 24,
+            borderRadius: 16,
+            alignItems: 'center',
+            maxWidth: 400,
+          }}
+        >
+          <RNText style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginTop: 16 }}>
             Something went wrong
-          </Text>
-          <Text size="md" color="$textLight600" textAlign="center" mt="$2" mb="$6">
+          </RNText>
+          <RNText style={{ fontSize: 16, color: '#4b5563', textAlign: 'center', marginTop: 8, marginBottom: 24 }}>
             {__DEV__ ? error.message : 'An unexpected error occurred. Please try again.'}
-          </Text>
-          <Button
-            action="primary"
-            size="md"
+          </RNText>
+          <TouchableOpacity
             onPress={resetError}
+            style={{
+              backgroundColor: '#6366F1',
+              borderRadius: 999,
+              paddingHorizontal: 24,
+              paddingVertical: 10,
+            }}
           >
-            <ButtonIcon as={RefreshCw} mr="$2" />
-            <ButtonText>Try Again</ButtonText>
-          </Button>
-        </VStack>
-        {__DEV__ && (
-          <Box mt="$6" px="$4" maxWidth={600}>
-            <Text size="xs" color="$textLight500" fontFamily="$mono">
+            <RNText style={{ color: '#ffffff', fontSize: 16, fontWeight: '600' }}>
+              Try Again
+            </RNText>
+          </TouchableOpacity>
+        </View>
+        {__DEV__ && error.stack && (
+          <View style={{ marginTop: 24, paddingHorizontal: 16, maxWidth: 600 }}>
+            <RNText style={{ fontSize: 12, color: '#6b7280', fontFamily: 'System' }}>
               {error.stack}
-            </Text>
-          </Box>
+            </RNText>
+          </View>
         )}
-      </Center>
-    </Box>
+      </View>
+    </View>
   );
 }
 
@@ -174,7 +187,7 @@ function AppNavigator() {
 
 function RootLayout() {
   return (
-    <SentryErrorBoundary fallback={ErrorFallback} showDialog={__DEV__}>
+    <SentryErrorBoundary fallback={ErrorFallback} showDialog={false}>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <AuthProvider>
