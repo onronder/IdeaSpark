@@ -26,10 +26,10 @@ export function withGluestackErrorLogging<P extends object>(
 
     // Log component mount/unmount for debugging
     React.useEffect(() => {
-      logger.logDebug(`${componentName} mounted`, { props: Object.keys(props as any) });
+      logger.debug(`${componentName} mounted`, { props: Object.keys(props as any) });
 
       return () => {
-        logger.logDebug(`${componentName} unmounted`);
+        logger.debug(`${componentName} unmounted`);
       };
     }, []);
 
@@ -149,14 +149,14 @@ export function useGluestackErrorLogging(componentName: string) {
   const { handleError, logger } = useErrorHandler(`Gluestack:${componentName}`);
 
   const logAccessibilityWarning = (warning: string, details?: any) => {
-    logger.logWarning(`Accessibility: ${warning}`, {
+    logger.warn(`Accessibility: ${warning}`, {
       component: componentName,
       ...details,
     });
   };
 
   const logStyleWarning = (warning: string, details?: any) => {
-    logger.logWarning(`Style: ${warning}`, {
+    logger.warn(`Style: ${warning}`, {
       component: componentName,
       ...details,
     });
@@ -182,7 +182,7 @@ export function validateThemeToken(token: string, value: any, componentName: str
   const { logger } = useErrorHandler(`Gluestack:${componentName}`);
 
   if (value === undefined || value === null) {
-    logger.logWarning(`Invalid theme token: ${token}`, {
+    logger.warn(`Invalid theme token: ${token}`, {
       component: componentName,
       token,
       value,
@@ -207,7 +207,7 @@ export function useGluestackPerformanceMonitor(componentName: string) {
 
       // Log slow renders (> 16ms for 60fps)
       if (renderDuration > 16) {
-        logger.logWarning('Slow render detected', {
+        logger.warn('Slow render detected', {
           component: componentName,
           duration: `${renderDuration.toFixed(2)}ms`,
           threshold: '16ms',

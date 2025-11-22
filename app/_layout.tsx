@@ -47,7 +47,7 @@ function ErrorFallback({ error, resetError }: { error: Error; resetError: () => 
     <Box flex={1} bg="$white" px="$6">
       <Center flex={1}>
         <VStack space="md" bg="$error50" p="$6" borderRadius="$2xl" alignItems="center" maxWidth={400}>
-          <Icon as={AlertTriangle} size="4xl" color="$error600" />
+          <Icon as={AlertTriangle} size="xl" color="$error600" />
           <Text size="xl" fontWeight="$bold" color="$textLight900" mt="$4">
             Something went wrong
           </Text>
@@ -77,15 +77,26 @@ function ErrorFallback({ error, resetError }: { error: Error; resetError: () => 
 
 // Splash screen component
 function SplashScreen() {
+  const { GradientBackground, AnimatedOrb } = require('@/components/ui');
+  const { useTheme } = require('@/contexts/ThemeContext');
+  const { colorMode } = useTheme();
+  const isDark = colorMode === 'dark';
+
   return (
-    <Box flex={1} bg="$white">
-      <Center flex={1}>
-        <VStack space="md" alignItems="center">
-          <Text size="2xl" fontWeight="$bold" color="$textLight900" mb="$4">IdeaSpark</Text>
-          <Icon as={require('lucide-react-native').Sparkles} size="4xl" color="$primary500" />
-          <Text color="$textLight500" mt="$4">Loading...</Text>
-        </VStack>
-      </Center>
+    <Box flex={1}>
+      <GradientBackground variant="primary">
+        <Center flex={1}>
+          <VStack space="lg" alignItems="center">
+            <AnimatedOrb size={100} icon="sparkles" variant="primary" />
+            <Text size="2xl" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>
+              IdeaSpark
+            </Text>
+            <Text color={isDark ? "$textDark400" : "$textLight500"} mt="$2">
+              Loading...
+            </Text>
+          </VStack>
+        </Center>
+      </GradientBackground>
     </Box>
   );
 }

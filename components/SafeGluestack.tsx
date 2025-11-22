@@ -118,7 +118,7 @@ export const SafeModal = React.forwardRef<any, ModalProps>((props, ref) => {
 
   React.useEffect(() => {
     if (props.isOpen) {
-      logger.logDebug('Modal opened', {
+      logger.debug('Modal opened', {
         hasBackdrop: props.backdrop !== undefined,
         isKeyboardDismissable: props.isKeyboardDismissable,
       });
@@ -147,7 +147,7 @@ export const SafeAlert = React.forwardRef<any, AlertProps>((props, ref) => {
   React.useEffect(() => {
     // Log alert actions for monitoring
     if (props.action) {
-      logger.logInfo('Alert displayed', {
+      logger.info('Alert displayed', {
         action: props.action,
         variant: props.variant,
       });
@@ -178,7 +178,7 @@ export const SafeFormControl = React.forwardRef<any, FormControlProps>((props, r
   React.useEffect(() => {
     // Log validation state changes
     if (props.isInvalid) {
-      logger.logDebug('FormControl validation failed', {
+      logger.debug('FormControl validation failed', {
         isRequired: props.isRequired,
         isDisabled: props.isDisabled,
         isReadOnly: props.isReadOnly,

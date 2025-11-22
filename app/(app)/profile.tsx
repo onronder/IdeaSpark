@@ -646,7 +646,6 @@ export default function ProfileScreen() {
           </VStack>
         </ScrollView>
       </GradientBackground>
-    </Box>
 
       {/* Edit Profile Modal */}
       <Modal

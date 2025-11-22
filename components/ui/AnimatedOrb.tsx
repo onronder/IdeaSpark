@@ -3,10 +3,12 @@ import { Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Box, Icon } from '@gluestack-ui/themed';
 import { Sparkles, Lightbulb, Zap } from 'lucide-react-native';
+import { getOrbGradient } from '@/constants/gradients';
 
 interface AnimatedOrbProps {
   size?: number;
   icon?: 'sparkles' | 'lightbulb' | 'zap';
+  variant?: 'primary' | 'secondary' | 'success' | 'warning';
   colors?: string[];
   animate?: boolean;
 }
@@ -14,9 +16,12 @@ interface AnimatedOrbProps {
 export const AnimatedOrb: React.FC<AnimatedOrbProps> = ({
   size = 120,
   icon = 'sparkles',
-  colors = ['#6366F1', '#8B5CF6', '#EC4899'],
+  variant = 'primary',
+  colors,
   animate = true
 }) => {
+  // Use custom colors if provided, otherwise use variant from centralized gradients
+  const orbColors = colors || getOrbGradient(variant);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
@@ -69,7 +74,7 @@ export const AnimatedOrb: React.FC<AnimatedOrbProps> = ({
         overflow="hidden"
       >
         <LinearGradient
-          colors={colors}
+          colors={orbColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{
@@ -79,7 +84,7 @@ export const AnimatedOrb: React.FC<AnimatedOrbProps> = ({
             alignItems: 'center',
           }}
         >
-          <Icon as={IconComponent} size="4xl" color="$white" />
+          <Icon as={IconComponent} size="xl" color="$white" />
         </LinearGradient>
       </Box>
     </Animated.View>

@@ -1,30 +1,25 @@
 import React, { useState } from "react";
-import { Platform, KeyboardAvoidingView, ScrollView, Animated } from "react-native";
+import { Platform, KeyboardAvoidingView, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Box,
   VStack,
   HStack,
   Heading,
   Text,
-  FormControl,
   FormControlLabel,
   FormControlLabelText,
   FormControlError,
   FormControlErrorText,
-  Input,
   InputField,
   InputIcon,
   InputSlot,
-  Button,
   ButtonText,
   Pressable,
-  Alert,
   AlertIcon,
   AlertText,
   Spinner,
-  Icon,
   Center,
 } from "@gluestack-ui/themed";
 import {
@@ -33,13 +28,14 @@ import {
   Mail,
   Lock,
   User,
-  Sparkles,
   AlertTriangle,
 } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
+import { GradientBackground, GlassCard, AnimatedOrb } from "@/components/ui";
+import { SafeButton, SafeInput, SafeFormControl, SafeAlert } from "@/components/SafeGluestack";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -47,6 +43,7 @@ export default function AuthScreen() {
   const { colorMode } = useTheme();
   const toast = useToast();
   const { handleError, logger } = useErrorHandler("AuthScreen");
+  const insets = useSafeAreaInsets();
 
   const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
   const [formData, setFormData] = useState({
@@ -129,7 +126,7 @@ export default function AuthScreen() {
   };
 
   const renderForgotPasswordScreen = () => (
-    <VStack space="lg" flex={1} px="$6" justifyContent="center">
+    <VStack space="lg" flex={1} px="$6" justifyContent="center" pt={insets.top || "$6"}>
       <VStack space="sm" mb="$6">
         <Heading size="2xl" color={isDark ? "$white" : "$textLight900"}>
           Reset Password
@@ -140,26 +137,35 @@ export default function AuthScreen() {
       </VStack>
 
       {errors.general && (
-        <Alert action="error" variant="solid" mb="$4">
+        <SafeAlert
+          action="error"
+          variant="solid"
+          mb="$4"
+          accessibilityLabel="Password reset error alert"
+        >
           <AlertIcon as={AlertTriangle} mr="$3" />
           <AlertText>{errors.general}</AlertText>
-        </Alert>
+        </SafeAlert>
       )}
 
       <VStack space="md">
-        <FormControl isInvalid={!!errors.email}>
+        <SafeFormControl
+          isInvalid={!!errors.email}
+          accessibilityLabel="Email input for password reset"
+        >
           <FormControlLabel>
             <FormControlLabelText color={isDark ? "$textDark300" : "$textLight700"}>
               Email
             </FormControlLabelText>
           </FormControlLabel>
-          <Input
+          <SafeInput
             variant="outline"
             size="lg"
             isDisabled={isLoading}
             isInvalid={!!errors.email}
             bg={isDark ? "rgba(255,255,255,0.05)" : "$white"}
             borderColor={isDark ? "rgba(255,255,255,0.1)" : "$borderLight300"}
+            accessibilityLabel="Email address input"
           >
             <InputSlot pl="$3">
               <InputIcon as={Mail} size="sm" color={isDark ? "$textDark400" : "$textLight400"} />
@@ -172,30 +178,39 @@ export default function AuthScreen() {
               autoCapitalize="none"
               placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
             />
-          </Input>
+          </SafeInput>
           {errors.email && (
             <FormControlError>
               <FormControlErrorText>{errors.email}</FormControlErrorText>
             </FormControlError>
           )}
-        </FormControl>
+        </SafeFormControl>
       </VStack>
 
-      <Button
+      <SafeButton
         size="lg"
         variant="solid"
         action="primary"
         isDisabled={isLoading}
         onPress={handleSubmit}
+        accessibilityLabel="Send password reset instructions button"
+        accessibilityHint="Tap to send password reset email"
       >
         {isLoading ? (
           <Spinner color="$white" />
         ) : (
           <ButtonText>Send Reset Instructions</ButtonText>
         )}
-      </Button>
+      </SafeButton>
 
-      <Pressable onPress={() => setAuthMode("login")} mt="$4" alignSelf="center">
+      <Pressable
+        onPress={() => setAuthMode("login")}
+        mt="$4"
+        alignSelf="center"
+        accessibilityRole="button"
+        accessibilityLabel="Back to login"
+        accessibilityHint="Return to the login screen"
+      >
         <Text color="$primary500" fontWeight="$semibold">
           ← Back to Login
         </Text>
@@ -206,14 +221,7 @@ export default function AuthScreen() {
   if (authMode === "forgot") {
     return (
       <Box flex={1}>
-        <LinearGradient
-          colors={
-            isDark
-              ? ['#0F172A', '#1E1B4B', '#312E81']
-              : ['#F0F9FF', '#E0F2FE', '#FFFFFF']
-          }
-          style={{ flex: 1 }}
-        >
+        <GradientBackground variant="primary">
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -226,21 +234,14 @@ export default function AuthScreen() {
               {renderForgotPasswordScreen()}
             </ScrollView>
           </KeyboardAvoidingView>
-        </LinearGradient>
+        </GradientBackground>
       </Box>
     );
   }
 
   return (
     <Box flex={1}>
-      <LinearGradient
-        colors={
-          isDark
-            ? ['#0F172A', '#1E1B4B', '#312E81', '#4338CA']
-            : ['#F0F9FF', '#E0F2FE', '#DBEAFE', '#FFFFFF']
-        }
-        style={{ flex: 1 }}
-      >
+      <GradientBackground variant="primary">
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -250,29 +251,18 @@ export default function AuthScreen() {
             keyboardShouldPersistTaps="handled"
             bounces={false}
           >
-            <VStack space="lg" flex={1} px="$6" justifyContent="center" py="$12">
+            <VStack
+              space="lg"
+              flex={1}
+              px="$6"
+              justifyContent="center"
+              pt={insets.top + 48 || "$12"}
+              pb="$12"
+            >
               {/* Welcome Header with Orb */}
               <Center mb="$8">
-                <Box
-                  w={120}
-                  h={120}
-                  borderRadius="$full"
-                  mb="$6"
-                  overflow="hidden"
-                >
-                  <LinearGradient
-                    colors={['#6366F1', '#8B5CF6', '#EC4899']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Icon as={Sparkles} size="4xl" color="$white" />
-                  </LinearGradient>
+                <Box mb="$6">
+                  <AnimatedOrb size={120} icon="sparkles" variant="primary" />
                 </Box>
 
                 <Heading size="3xl" textAlign="center" color={isDark ? "$white" : "$textLight900"} mb="$2">
@@ -286,39 +276,39 @@ export default function AuthScreen() {
               </Center>
 
               {/* Glassmorphism Card */}
-              <Box
-                bg={isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.9)"}
-                borderRadius="$3xl"
-                p="$6"
-                borderWidth={1}
-                borderColor={isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.5)"}
-                shadowColor="$black"
-                shadowOffset={{ width: 0, height: 10 }}
-                shadowOpacity={isDark ? 0.3 : 0.1}
-                shadowRadius={20}
-              >
+              <GlassCard p="$6" opacity={isDark ? 0.05 : 0.9}>
                 {errors.general && (
-                  <Alert action="error" variant="solid" mb="$4">
+                  <SafeAlert
+                    action="error"
+                    variant="solid"
+                    mb="$4"
+                    accessibilityLabel="Authentication error alert"
+                  >
                     <AlertIcon as={AlertTriangle} mr="$3" />
                     <AlertText>{errors.general}</AlertText>
-                  </Alert>
+                  </SafeAlert>
                 )}
 
                 <VStack space="md">
                   {authMode === "signup" && (
-                    <FormControl isInvalid={!!errors.name}>
+                    <SafeFormControl
+                      isInvalid={!!errors.name}
+                      isRequired={true}
+                      accessibilityLabel="Full name input field"
+                    >
                       <FormControlLabel>
                         <FormControlLabelText color={isDark ? "$textDark300" : "$textLight700"}>
                           Full Name
                         </FormControlLabelText>
                       </FormControlLabel>
-                      <Input
+                      <SafeInput
                         variant="outline"
                         size="lg"
                         isDisabled={isLoading}
                         isInvalid={!!errors.name}
                         bg={isDark ? "rgba(255,255,255,0.05)" : "$white"}
                         borderColor={isDark ? "rgba(255,255,255,0.1)" : "$borderLight300"}
+                        accessibilityLabel="Full name input"
                       >
                         <InputSlot pl="$3">
                           <InputIcon as={User} size="sm" color={isDark ? "$textDark400" : "$textLight400"} />
@@ -330,28 +320,33 @@ export default function AuthScreen() {
                           autoCapitalize="words"
                           placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                         />
-                      </Input>
+                      </SafeInput>
                       {errors.name && (
                         <FormControlError>
                           <FormControlErrorText>{errors.name}</FormControlErrorText>
                         </FormControlError>
                       )}
-                    </FormControl>
+                    </SafeFormControl>
                   )}
 
-                  <FormControl isInvalid={!!errors.email}>
+                  <SafeFormControl
+                    isInvalid={!!errors.email}
+                    isRequired={true}
+                    accessibilityLabel="Email address input field"
+                  >
                     <FormControlLabel>
                       <FormControlLabelText color={isDark ? "$textDark300" : "$textLight700"}>
                         Email
                       </FormControlLabelText>
                     </FormControlLabel>
-                    <Input
+                    <SafeInput
                       variant="outline"
                       size="lg"
                       isDisabled={isLoading}
                       isInvalid={!!errors.email}
                       bg={isDark ? "rgba(255,255,255,0.05)" : "$white"}
                       borderColor={isDark ? "rgba(255,255,255,0.1)" : "$borderLight300"}
+                      accessibilityLabel="Email address input"
                     >
                       <InputSlot pl="$3">
                         <InputIcon as={Mail} size="sm" color={isDark ? "$textDark400" : "$textLight400"} />
@@ -364,27 +359,32 @@ export default function AuthScreen() {
                         autoCapitalize="none"
                         placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                       />
-                    </Input>
+                    </SafeInput>
                     {errors.email && (
                       <FormControlError>
                         <FormControlErrorText>{errors.email}</FormControlErrorText>
                       </FormControlError>
                     )}
-                  </FormControl>
+                  </SafeFormControl>
 
-                  <FormControl isInvalid={!!errors.password}>
+                  <SafeFormControl
+                    isInvalid={!!errors.password}
+                    isRequired={true}
+                    accessibilityLabel="Password input field"
+                  >
                     <FormControlLabel>
                       <FormControlLabelText color={isDark ? "$textDark300" : "$textLight700"}>
                         Password
                       </FormControlLabelText>
                     </FormControlLabel>
-                    <Input
+                    <SafeInput
                       variant="outline"
                       size="lg"
                       isDisabled={isLoading}
                       isInvalid={!!errors.password}
                       bg={isDark ? "rgba(255,255,255,0.05)" : "$white"}
                       borderColor={isDark ? "rgba(255,255,255,0.1)" : "$borderLight300"}
+                      accessibilityLabel="Password input"
                     >
                       <InputSlot pl="$3">
                         <InputIcon as={Lock} size="sm" color={isDark ? "$textDark400" : "$textLight400"} />
@@ -398,7 +398,12 @@ export default function AuthScreen() {
                         placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                       />
                       <InputSlot pr="$3">
-                        <Pressable onPress={() => setShowPassword(!showPassword)}>
+                        <Pressable
+                          onPress={() => setShowPassword(!showPassword)}
+                          accessibilityRole="button"
+                          accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                          accessibilityHint="Toggles password visibility"
+                        >
                           <InputIcon
                             as={showPassword ? EyeOff : Eye}
                             size="sm"
@@ -406,28 +411,33 @@ export default function AuthScreen() {
                           />
                         </Pressable>
                       </InputSlot>
-                    </Input>
+                    </SafeInput>
                     {errors.password && (
                       <FormControlError>
                         <FormControlErrorText>{errors.password}</FormControlErrorText>
                       </FormControlError>
                     )}
-                  </FormControl>
+                  </SafeFormControl>
 
                   {authMode === "signup" && (
-                    <FormControl isInvalid={!!errors.confirmPassword}>
+                    <SafeFormControl
+                      isInvalid={!!errors.confirmPassword}
+                      isRequired={true}
+                      accessibilityLabel="Confirm password input field"
+                    >
                       <FormControlLabel>
                         <FormControlLabelText color={isDark ? "$textDark300" : "$textLight700"}>
                           Confirm Password
                         </FormControlLabelText>
                       </FormControlLabel>
-                      <Input
+                      <SafeInput
                         variant="outline"
                         size="lg"
                         isDisabled={isLoading}
                         isInvalid={!!errors.confirmPassword}
                         bg={isDark ? "rgba(255,255,255,0.05)" : "$white"}
                         borderColor={isDark ? "rgba(255,255,255,0.1)" : "$borderLight300"}
+                        accessibilityLabel="Confirm password input"
                       >
                         <InputSlot pl="$3">
                           <InputIcon as={Lock} size="sm" color={isDark ? "$textDark400" : "$textLight400"} />
@@ -441,7 +451,12 @@ export default function AuthScreen() {
                           placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                         />
                         <InputSlot pr="$3">
-                          <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                          <Pressable
+                            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                            accessibilityRole="button"
+                            accessibilityLabel={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                            accessibilityHint="Toggles confirm password visibility"
+                          >
                             <InputIcon
                               as={showConfirmPassword ? EyeOff : Eye}
                               size="sm"
@@ -449,30 +464,38 @@ export default function AuthScreen() {
                             />
                           </Pressable>
                         </InputSlot>
-                      </Input>
+                      </SafeInput>
                       {errors.confirmPassword && (
                         <FormControlError>
                           <FormControlErrorText>{errors.confirmPassword}</FormControlErrorText>
                         </FormControlError>
                       )}
-                    </FormControl>
+                    </SafeFormControl>
                   )}
 
                   {authMode === "login" && (
-                    <Pressable onPress={() => setAuthMode("forgot")} alignSelf="flex-end">
+                    <Pressable
+                      onPress={() => setAuthMode("forgot")}
+                      alignSelf="flex-end"
+                      accessibilityRole="button"
+                      accessibilityLabel="Forgot password"
+                      accessibilityHint="Navigate to password reset screen"
+                    >
                       <Text color="$primary500" fontWeight="$semibold" size="sm">
                         Forgot Password?
                       </Text>
                     </Pressable>
                   )}
 
-                  <Button
+                  <SafeButton
                     size="lg"
                     variant="solid"
                     action="primary"
                     isDisabled={isLoading}
                     onPress={handleSubmit}
                     mt="$2"
+                    accessibilityLabel={authMode === "login" ? "Sign in button" : "Create account button"}
+                    accessibilityHint={authMode === "login" ? "Tap to sign in" : "Tap to create a new account"}
                   >
                     {isLoading ? (
                       <Spinner color="$white" />
@@ -481,9 +504,9 @@ export default function AuthScreen() {
                         {authMode === "login" ? "Sign In" : "Create Account"}
                       </ButtonText>
                     )}
-                  </Button>
+                  </SafeButton>
                 </VStack>
-              </Box>
+              </GlassCard>
 
               {/* Switch Mode */}
               <Center mt="$6">
@@ -496,6 +519,9 @@ export default function AuthScreen() {
                       setAuthMode(authMode === "login" ? "signup" : "login");
                       setErrors({});
                     }}
+                    accessibilityRole="button"
+                    accessibilityLabel={authMode === "login" ? "Switch to sign up" : "Switch to sign in"}
+                    accessibilityHint={authMode === "login" ? "Navigate to sign up screen" : "Navigate to sign in screen"}
                   >
                     <Text color="$primary500" fontWeight="$bold">
                       {authMode === "login" ? "Sign Up" : "Sign In"}
@@ -506,7 +532,7 @@ export default function AuthScreen() {
             </VStack>
           </ScrollView>
         </KeyboardAvoidingView>
-      </LinearGradient>
+      </GradientBackground>
     </Box>
   );
 }

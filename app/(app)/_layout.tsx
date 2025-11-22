@@ -1,29 +1,15 @@
 import { Stack, Redirect, Tabs } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Center, Spinner, Box } from '@gluestack-ui/themed';
 import { Home, MessageSquare, User, Sparkles } from 'lucide-react-native';
-import { GradientBackground, AnimatedOrb } from '@/components/ui';
 
 export default function AppLayout() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { colorMode } = useTheme();
 
   const isDark = colorMode === 'dark';
 
-  // Show loading while checking auth state
-  if (isLoading) {
-    return (
-      <Box flex={1}>
-        <GradientBackground>
-          <Center flex={1}>
-            <AnimatedOrb size={80} icon="sparkles" />
-          </Center>
-        </GradientBackground>
-      </Box>
-    );
-  }
-
+  // No loading state needed - handled by root layout
   // Redirect to auth if not authenticated
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/" />;

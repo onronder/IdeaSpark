@@ -1,28 +1,25 @@
-// Temporarily disable Sentry import due to __extends issue
-// TODO: Fix Sentry configuration after running sentry wizard
-// import * as Sentry from 'sentry-expo';
-let Sentry: any = null;
+import * as Sentry from '@sentry/react-native';
+import { routingInstrumentation } from './lib/sentryRouting';
 
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
 export function initSentry() {
-  console.log('Sentry temporarily disabled - run sentry wizard to configure');
-  return;
-
   if (!SENTRY_DSN) {
-    console.log('Sentry DSN not configured, skipping initialization');
+    console.log('Sentry DSN not configured - set EXPO_PUBLIC_SENTRY_DSN in .env');
     return;
   }
 
   Sentry.init({
     dsn: SENTRY_DSN,
-    debug: __DEV__, // Enable debug mode in development
-    environment: __DEV__ ? 'development' : 'production',
-    tracesSampleRate: __DEV__ ? 1.0 : 0.1, // 100% in dev, 10% in prod
+    debug: __DEV__,
+    environment: process.env.SENTRY_ENVIRONMENT || (__DEV__ ? 'development' : 'production'),
+    tracesSampleRate: __DEV__ ? 1.0 : 0.2,
+    enableAutoSessionTracking: true,
+    sessionTrackingIntervalMillis: 30000,
     integrations: [
       new Sentry.ReactNativeTracing({
-        tracingOrigins: ['localhost', /^\/api/],
-        routingInstrumentation: Sentry.reactNavigationInstrumentation(),
+        tracingOrigins: ['localhost', /^\/api/, /^\//],
+        routingInstrumentation,
       }),
     ],
     beforeSend(event, hint) {
@@ -82,47 +79,85 @@ export function initSentry() {
   });
 }
 
-// Error boundary wrapper for React components (stub for now)
+// Error boundary wrapper for React components
 import React from 'react';
-export const SentryErrorBoundary = ({ children, fallback }: any) => children;
 
-// Manual error capture (stub - just log to console)
+interface SentryErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ComponentType<{ error: Error; resetError: () => void }>;
+  showDialog?: boolean;
+}
+
+export const SentryErrorBoundary: React.FC<SentryErrorBoundaryProps> = ({
+  children,
+  fallback,
+  showDialog = false
+}) => {
+  if (!SENTRY_DSN) {
+    // If Sentry not configured, just render children
+    return <>{children}</>;
+  }
+
+  const ErrorBoundary = Sentry.ErrorBoundary;
+  return (
+    <ErrorBoundary fallback={fallback} showDialog={showDialog}>
+      {children}
+    </ErrorBoundary>
+  );
+};
+
+// Manual error capture
 export function captureException(error: Error | string, context?: Record<string, any>) {
+  if (SENTRY_DSN) {
+    Sentry.captureException(error, { contexts: { custom: context } });
+  }
   if (__DEV__) {
-    console.error('[Sentry Stub] Exception:', error, context);
+    console.error('[Sentry] Exception:', error, context);
   }
 }
 
-// Capture message (stub - just log to console)
-export function captureMessage(message: string, level: string = 'info') {
+// Capture message
+export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info') {
+  if (SENTRY_DSN) {
+    Sentry.captureMessage(message, level);
+  }
   if (__DEV__) {
-    console.log(`[Sentry Stub] ${level}:`, message);
+    console.log(`[Sentry] ${level}:`, message);
   }
 }
 
-// Add breadcrumb (stub - just log to console)
+// Add breadcrumb
 export function addBreadcrumb(breadcrumb: {
   message: string;
   category?: string;
-  level?: string;
+  level?: Sentry.SeverityLevel;
   data?: Record<string, any>;
 }) {
+  if (SENTRY_DSN) {
+    Sentry.addBreadcrumb(breadcrumb as Sentry.Breadcrumb);
+  }
   if (__DEV__) {
-    console.log('[Sentry Stub] Breadcrumb:', breadcrumb);
+    console.log('[Sentry] Breadcrumb:', breadcrumb);
   }
 }
 
-// Set user context (stub - no-op)
-export function setUser(user: { id: string; username?: string } | null) {
+// Set user context
+export function setUser(user: { id: string; username?: string; email?: string } | null) {
+  if (SENTRY_DSN) {
+    Sentry.setUser(user);
+  }
   if (__DEV__) {
-    console.log('[Sentry Stub] Set user:', user);
+    console.log('[Sentry] Set user:', user);
   }
 }
 
-// Performance monitoring (stub - no-op)
+// Performance monitoring
 export function startTransaction(name: string, op: string = 'navigation') {
+  if (SENTRY_DSN) {
+    return Sentry.startTransaction({ name, op });
+  }
   if (__DEV__) {
-    console.log('[Sentry Stub] Start transaction:', name, op);
+    console.log('[Sentry] Start transaction:', name, op);
   }
   return null;
 }
