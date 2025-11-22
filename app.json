@@ -66,8 +66,9 @@
       [
         "@sentry/react-native/expo",
         {
-          "organization": "fittechs",
-          "project": "react-native"
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "fittechs"
         }
       ]
     ],

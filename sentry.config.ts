@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react-native';
-import { routingInstrumentation } from './lib/sentryRouting';
 
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
@@ -17,9 +16,10 @@ export function initSentry() {
     enableAutoSessionTracking: true,
     sessionTrackingIntervalMillis: 30000,
     integrations: [
-      new Sentry.ReactNativeTracing({
-        tracingOrigins: ['localhost', /^\/api/, /^\//],
-        routingInstrumentation,
+      Sentry.reactNativeTracingIntegration({
+        enableAppStartTracking: true,
+        enableNativeFramesTracking: true,
+        enableStallTracking: true,
       }),
     ],
     beforeSend(event, hint) {
@@ -71,11 +71,9 @@ export function initSentry() {
   });
 
   // Set initial user context (anonymous)
-  Sentry.configureScope((scope) => {
-    scope.setTag('app_version', process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0');
-    scope.setContext('device', {
-      simulator: __DEV__,
-    });
+  Sentry.setTag('app_version', process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0');
+  Sentry.setContext('device', {
+    simulator: __DEV__,
   });
 }
 
@@ -95,14 +93,14 @@ export const SentryErrorBoundary: React.FC<SentryErrorBoundaryProps> = ({
 }) => {
   if (!SENTRY_DSN) {
     // If Sentry not configured, just render children
-    return <>{children}</>;
+    return React.createElement(React.Fragment, null, children);
   }
 
   const ErrorBoundary = Sentry.ErrorBoundary;
-  return (
-    <ErrorBoundary fallback={fallback} showDialog={showDialog}>
-      {children}
-    </ErrorBoundary>
+  return React.createElement(
+    ErrorBoundary,
+    { fallback, showDialog },
+    children
   );
 };
 
