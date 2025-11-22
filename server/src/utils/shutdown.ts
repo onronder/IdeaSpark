@@ -25,7 +25,7 @@ async function shutdown(server: Server, signal: string) {
   // Stop accepting new connections
   server.close(async (err) => {
     if (err) {
-      logger.error('Error during server close', err);
+      logger.error({ err }, 'Error during server close');
     }
 
     try {
@@ -38,7 +38,7 @@ async function shutdown(server: Server, signal: string) {
       logger.info('Graceful shutdown completed');
       process.exit(0);
     } catch (error) {
-      logger.error('Error during graceful shutdown', error);
+      logger.error({ err: error }, 'Error during graceful shutdown');
       process.exit(1);
     }
   });

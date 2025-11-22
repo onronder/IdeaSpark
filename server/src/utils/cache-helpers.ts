@@ -164,7 +164,7 @@ export const QuotaHelpers = {
    * @returns Current count after increment
    */
   async incrementDaily(userId: string): Promise<number> {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = (new Date().toISOString().split('T')[0] ?? '') as string; // YYYY-MM-DD
     const key = CacheKeys.quotaDaily(userId, today);
 
     const count = await cache.incr(key);
@@ -185,7 +185,7 @@ export const QuotaHelpers = {
    * Get daily quota usage
    */
   async getDaily(userId: string): Promise<number> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = (new Date().toISOString().split('T')[0] ?? '') as string;
     const key = CacheKeys.quotaDaily(userId, today);
     const value = await cache.get(key);
     return value ? parseInt(value, 10) : 0;
@@ -195,7 +195,7 @@ export const QuotaHelpers = {
    * Reset daily quota (for testing or manual override)
    */
   async resetDaily(userId: string): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = (new Date().toISOString().split('T')[0] ?? '') as string;
     await cache.del(CacheKeys.quotaDaily(userId, today));
     cacheLogger.info({ userId }, 'Reset daily quota');
   },

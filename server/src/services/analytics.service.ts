@@ -360,7 +360,14 @@ class AnalyticsService {
   async getCohortAnalytics(cohortMonth: string) {
     try {
       // Parse cohort month (format: YYYY-MM)
-      const [year, month] = cohortMonth.split('-').map(Number);
+      const [yearStr, monthStr] = cohortMonth.split('-');
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+
+      if (!Number.isFinite(year) || !Number.isFinite(month)) {
+        throw new Error(`Invalid cohortMonth format: ${cohortMonth}. Expected YYYY-MM.`);
+      }
+
       const cohortStart = new Date(year, month - 1, 1);
       const cohortEnd = new Date(year, month, 0);
 
@@ -407,9 +414,8 @@ class AnalyticsService {
    * Flush any pending events
    */
   async flush(): Promise<void> {
-    if (this.isInitialized && this.amplitudeClient) {
-      await this.amplitudeClient.flush();
-    }
+    if (!this.isInitialized) return;
+    await this.amplitudeClient?.flush();
   }
 }
 

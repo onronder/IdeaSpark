@@ -65,20 +65,20 @@ async function startServer() {
     // Setup graceful shutdown
     gracefulShutdown(server);
   } catch (error) {
-    logger.error('Failed to start server', error);
+    logger.error({ err: error }, 'Failed to start server');
     process.exit(1);
   }
 }
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception', error);
+  logger.error({ err: error }, 'Uncaught Exception');
   process.exit(1);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection', { reason, promise });
+  logger.error({ reason, promise }, 'Unhandled Rejection');
   process.exit(1);
 });
 
