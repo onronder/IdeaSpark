@@ -303,7 +303,7 @@ class AnalyticsService {
         }),
       ]);
 
-      const totalEvents = events.length > 0 ? events[0]._count.userId : 0;
+      const totalEvents = events[0]?._count?.userId ?? 0;
 
       return {
         userId,
