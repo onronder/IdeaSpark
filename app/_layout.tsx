@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import "@/global.css";
+import * as Sentry from '@sentry/react-native';
 import { initSentry, SentryErrorBoundary, captureException, setUser } from "@/sentry.config";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/contexts/ToastContext";
@@ -171,7 +172,7 @@ function AppNavigator() {
   return <Stack screenOptions={{ headerShown: false }} />;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <SentryErrorBoundary fallback={ErrorFallback} showDialog={__DEV__}>
       <QueryClientProvider client={queryClient}>
@@ -188,3 +189,6 @@ export default function RootLayout() {
     </SentryErrorBoundary>
   );
 }
+
+// Wrap the root component with Sentry for proper error tracking
+export default Sentry.wrap(RootLayout);

@@ -1,8 +1,10 @@
 # Sentry Setup Guide
 
 ## Current Status
+✅ Migrated from deprecated `sentry-expo` to `@sentry/react-native`
 ✅ Sentry configuration files are ready
 ✅ `.env` file created with placeholder
+✅ App wrapped with `Sentry.wrap()` for proper tracking
 ⏳ Waiting for Sentry DSN from wizard
 
 ## Steps to Complete Sentry Setup

@@ -63,7 +63,13 @@
         }
       ],
       "expo-secure-store",
-      "sentry-expo"
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "fittechs",
+          "project": "react-native"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
