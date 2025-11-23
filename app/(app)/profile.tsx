@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  ScrollView,
-  Modal as RNModal,
-  Linking,
-  RefreshControl,
-} from 'react-native';
+import { ScrollView, RefreshControl, Alert as RNAlert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Box,
   VStack,
@@ -16,288 +12,312 @@ import {
   ButtonIcon,
   Badge,
   BadgeText,
-  Avatar,
-  AvatarFallbackText,
-  AvatarImage,
-  Switch,
-  Divider,
-  Pressable,
-  Alert,
-  AlertIcon,
-  AlertText,
+  Input,
+  InputField,
+  InputSlot,
+  InputIcon,
   FormControl,
   FormControlLabel,
   FormControlLabelText,
   FormControlError,
   FormControlErrorText,
-  Input,
-  InputField,
-  InputIcon,
-  InputSlot,
+  Alert,
+  AlertIcon,
+  AlertText,
+  Avatar,
+  AvatarImage,
+  AvatarFallbackText,
+  Pressable,
+  Spinner,
+  Icon,
+  Center,
+  Switch,
+  Divider,
   Modal,
   ModalBackdrop,
   ModalContent,
   ModalHeader,
-  ModalCloseButton,
   ModalBody,
   ModalFooter,
-  Icon,
+  ModalCloseButton,
   Accordion,
   AccordionItem,
   AccordionHeader,
   AccordionTrigger,
   AccordionTitleText,
-  AccordionIcon,
   AccordionContent,
-  Spinner,
-  Center,
-  Card,
+  AccordionContentText,
+  AccordionIcon,
 } from "@gluestack-ui/themed";
 import {
-  User,
   Crown,
-  Bell,
-  Shield,
-  CreditCard,
-  HelpCircle,
-  LogOut,
-  Edit3,
-  Mail,
-  Lock,
-  Moon,
   ChevronRight,
-  ChevronDown,
-  RefreshCw,
+  Edit3,
+  Lock,
   Receipt,
+  Moon,
+  Bell,
+  Mail,
+  HelpCircle,
+  FileText,
+  Shield,
+  LogOut,
   Trash2,
-  Phone,
-  X,
-  AlertTriangle,
+  CheckCircle,
   Camera,
   Eye,
   EyeOff,
-  CheckCircle,
-  Calendar,
-  Smartphone,
-  Activity,
-  MessageSquare,
+  X,
+  AlertTriangle,
   Zap,
+  MessageSquare,
+  Activity,
+  Calendar,
+  User,
+  Sparkles,
+  TrendingUp,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from '@/contexts/ThemeContext';
-import { useToast } from '@/contexts/ToastContext';
-import { useErrorHandler } from '@/hooks/useErrorHandler';
 import {
-  useUserProfile,
+  useProfile,
   useUpdateProfile,
   useChangePassword,
-  useUploadAvatar,
   useDeleteAccount,
-  useUpdateNotifications,
-  useUpdateTheme,
+  useUploadAvatar,
   useUserStats,
-} from '@/hooks/useProfile';
-import { useUsageSummary } from '@/hooks/useApi';
-import { GradientBackground, GlassCard, AnimatedOrb } from '@/components/ui';
+} from '@/hooks/useApi';
+import { useToast } from '@/contexts/ToastContext';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GradientBackground, GlassCard, AnimatedOrb } from '@/components/ui';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
-  const { isDarkMode, toggleDarkMode, colorMode } = useTheme();
+  const { colorMode, toggleColorMode } = useTheme();
   const toast = useToast();
   const { handleError, logger } = useErrorHandler('ProfileScreen');
   const insets = useSafeAreaInsets();
 
   const isDark = colorMode === 'dark';
 
-  // API Hooks
-  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useUserProfile();
-  const { data: usage } = useUsageSummary();
-  const { data: stats } = useUserStats();
+  // API hooks
+  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useProfile();
+  const { data: stats, refetch: refetchStats } = useUserStats();
   const updateProfile = useUpdateProfile();
   const changePassword = useChangePassword();
   const deleteAccount = useDeleteAccount();
-  const updateNotifications = useUpdateNotifications();
-  const updateTheme = useUpdateTheme();
-  const { pickImage, uploadAvatar, isUploading } = useUploadAvatar();
+  const uploadAvatar = useUploadAvatar();
 
-  // Form state
-  const [editFormData, setEditFormData] = useState({
-    name: '',
-    email: '',
-  });
-  const [passwordFormData, setPasswordFormData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-  const [deletePassword, setDeletePassword] = useState('');
-
-  // Modal visibility
+  // Local state
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
-  const [showPasswordCurrent, setShowPasswordCurrent] = useState(false);
-  const [showPasswordNew, setShowPasswordNew] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Settings state (from profile preferences)
-  const [notifications, setNotifications] = useState(false);
-  const [marketingEmails, setMarketingEmails] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // Form states
+  const [editName, setEditName] = useState('');
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Initialize form data when profile loads
+  // Preferences
+  const [isDarkMode, setIsDarkMode] = useState(isDark);
+  const [notifications, setNotifications] = useState(profile?.preferences?.pushNotifications ?? true);
+  const [marketingEmails, setMarketingEmails] = useState(profile?.preferences?.marketingEmails ?? false);
+
   useEffect(() => {
     if (profile) {
-      setEditFormData({
-        name: profile.name || '',
-        email: profile.email,
-      });
-
-      const prefs = profile.preferences?.notifications;
-      if (prefs) {
-        setNotifications(prefs.push || false);
-        setMarketingEmails(prefs.marketing || false);
-      }
+      setEditName(profile.name || '');
+      setNotifications(profile.preferences?.pushNotifications ?? true);
+      setMarketingEmails(profile.preferences?.marketingEmails ?? false);
     }
   }, [profile]);
 
-  // Handle dark mode toggle with backend persistence
-  const handleDarkModeToggle = async (value: boolean) => {
-    toggleDarkMode();
+  useEffect(() => {
+    setIsDarkMode(isDark);
+  }, [isDark]);
 
-    // Save to backend
-    try {
-      await updateTheme.mutateAsync(value ? 'dark' : 'light');
-    } catch (error) {
-      // Revert on error
-      toggleDarkMode();
-    }
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([refetchProfile(), refetchStats()]);
+    setIsRefreshing(false);
   };
 
-  // Handle notification toggle
-  const handleNotificationToggle = async (value: boolean) => {
-    setNotifications(value);
-
-    try {
-      await updateNotifications.mutateAsync({
-        push: value,
-        email: value,
-        ideaUpdates: value,
-      });
-    } catch (error) {
-      // Revert on error
-      setNotifications(!value);
-    }
+  const handleDarkModeToggle = async () => {
+    toggleColorMode();
+    setIsDarkMode(!isDarkMode);
   };
 
-  // Handle marketing emails toggle
-  const handleMarketingToggle = async (value: boolean) => {
-    setMarketingEmails(value);
-
-    try {
-      await updateNotifications.mutateAsync({
-        marketing: value,
-        weeklyDigest: value,
-      });
-    } catch (error) {
-      // Revert on error
-      setMarketingEmails(!value);
-    }
-  };
-
-  // Handle profile update
-  const handleUpdateProfile = async () => {
-    if (!editFormData.name.trim()) {
-      toast.error('Validation Error', 'Name is required');
-      return;
-    }
-
-    if (!editFormData.email.trim() || !editFormData.email.includes('@')) {
-      toast.error('Validation Error', 'Valid email is required');
-      return;
-    }
-
+  const handleNotificationToggle = async () => {
+    const newValue = !notifications;
+    setNotifications(newValue);
     try {
       await updateProfile.mutateAsync({
-        name: editFormData.name,
-        email: editFormData.email,
+        preferences: {
+          ...profile?.preferences,
+          pushNotifications: newValue,
+        },
       });
-      setShowEditProfile(false);
-    } catch (error) {
-      // Error handled by hook
+      toast.success('Preferences updated');
+    } catch (err: any) {
+      handleError(err, 'Failed to update notification preferences');
+      setNotifications(!newValue);
     }
   };
 
-  // Handle password change
+  const handleMarketingToggle = async () => {
+    const newValue = !marketingEmails;
+    setMarketingEmails(newValue);
+    try {
+      await updateProfile.mutateAsync({
+        preferences: {
+          ...profile?.preferences,
+          marketingEmails: newValue,
+        },
+      });
+      toast.success('Preferences updated');
+    } catch (err: any) {
+      handleError(err, 'Failed to update marketing preferences');
+      setMarketingEmails(!newValue);
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!editName.trim()) {
+      toast.error('Name cannot be empty');
+      return;
+    }
+
+    try {
+      await updateProfile.mutateAsync({ name: editName.trim() });
+      toast.success('Profile updated successfully');
+      setShowEditProfile(false);
+      refetchProfile();
+    } catch (err: any) {
+      handleError(err, 'Failed to update profile');
+    }
+  };
+
   const handleChangePassword = async () => {
-    if (!passwordFormData.currentPassword) {
-      toast.error('Validation Error', 'Current password is required');
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      toast.error('All fields are required');
       return;
     }
 
-    if (passwordFormData.newPassword.length < 8) {
-      toast.error('Validation Error', 'New password must be at least 8 characters');
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
       return;
     }
 
-    if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
-      toast.error('Validation Error', 'Passwords do not match');
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
       return;
     }
 
     try {
       await changePassword.mutateAsync({
-        currentPassword: passwordFormData.currentPassword,
-        newPassword: passwordFormData.newPassword,
+        oldPassword,
+        newPassword,
       });
-
+      toast.success('Password changed successfully');
       setShowChangePassword(false);
-      setPasswordFormData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-    } catch (error) {
-      // Error handled by hook
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      handleError(err, err.message || 'Failed to change password');
     }
   };
 
-  // Handle avatar upload
-  const handleAvatarUpload = async () => {
-    const image = await pickImage();
-    if (image) {
-      await uploadAvatar.mutateAsync(image.uri);
-    }
-  };
-
-  // Handle account deletion
   const handleDeleteAccount = async () => {
     if (!deletePassword) {
-      toast.error('Validation Error', 'Password is required for account deletion');
+      toast.error('Please enter your password');
       return;
     }
 
-    try {
-      await deleteAccount.mutateAsync(deletePassword);
-      setShowDeleteAccount(false);
-    } catch (error) {
-      // Error handled by hook
+    RNAlert.alert(
+      'Delete Account',
+      'Are you absolutely sure? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount.mutateAsync({ password: deletePassword });
+              toast.success('Account deleted successfully');
+              await signOut();
+            } catch (err: any) {
+              handleError(err, err.message || 'Failed to delete account');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleAvatarUpload = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      toast.error('Permission denied', 'We need camera roll permissions to upload an avatar');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setIsUploading(true);
+      try {
+        const uri = result.assets[0].uri;
+        const response = await fetch(uri);
+        const blob = await response.blob();
+
+        await uploadAvatar.mutateAsync(blob);
+        toast.success('Avatar uploaded successfully');
+        refetchProfile();
+      } catch (err: any) {
+        handleError(err, 'Failed to upload avatar');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
-  // Handle refresh
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetchProfile();
-    setIsRefreshing(false);
+  const handleSignOut = async () => {
+    RNAlert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut();
+            router.replace('/(auth)');
+          } catch (err: any) {
+            handleError(err, 'Failed to sign out');
+          }
+        },
+      },
+    ]);
   };
 
-  // Format member since date
   const formatMemberSince = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
-      month: 'long',
+      month: 'short',
       year: 'numeric',
     });
   };
@@ -307,8 +327,8 @@ export default function ProfileScreen() {
       <Box flex={1}>
         <GradientBackground>
           <Center flex={1}>
-            <AnimatedOrb size={80} icon="sparkles" />
-            <Text mt="$6" color={isDark ? "$white" : "$textLight900"} size="lg">
+            <AnimatedOrb size={100} icon="sparkles" />
+            <Text mt="$8" color={isDark ? "$white" : "$textLight900"} size="xl" fontWeight="$semibold">
               Loading profile...
             </Text>
           </Center>
@@ -320,67 +340,138 @@ export default function ProfileScreen() {
   return (
     <Box flex={1}>
       <GradientBackground>
-        {/* Header with Glassmorphism */}
-        <Box px="$4" pt={insets.top + 20} pb="$6">
-          <GlassCard p="$6" opacity={0.08}>
-            <VStack space="md" alignItems="center">
+        {/* Enhanced Header with Profile Card */}
+        <Box px="$5" pt={insets.top + 24} pb="$8">
+          <GlassCard p="$8" opacity={0.1}>
+            <VStack space="lg" alignItems="center">
               <Pressable onPress={handleAvatarUpload}>
                 <Box position="relative">
-                  <Avatar size="xl" bg="$primary100">
+                  <Avatar size="2xl" bg="$primary200" borderWidth={4} borderColor={isDark ? "rgba(139,92,246,0.3)" : "rgba(139,92,246,0.2)"}>
                     {profile?.avatar ? (
                       <AvatarImage source={{ uri: profile.avatar }} alt={profile?.name || 'User'} />
                     ) : (
-                      <AvatarFallbackText>
+                      <AvatarFallbackText fontSize="$4xl" fontWeight="$bold">
                         {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase() : user?.email?.[0].toUpperCase()}
                       </AvatarFallbackText>
                     )}
                   </Avatar>
                   {isUploading ? (
-                    <Box position="absolute" bottom={0} right={0} bg={isDark ? "rgba(255,255,255,0.2)" : "$white"} borderRadius="$full" p="$1">
+                    <Box 
+                      position="absolute" 
+                      bottom={4} 
+                      right={4} 
+                      bg={isDark ? "rgba(255,255,255,0.2)" : "$white"} 
+                      borderRadius="$full" 
+                      p="$3"
+                      shadowColor="$black"
+                      shadowOffset={{ width: 0, height: 4 }}
+                      shadowOpacity={0.3}
+                      shadowRadius={8}
+                    >
                       <Spinner size="small" color="$primary500" />
                     </Box>
                   ) : (
-                    <Box position="absolute" bottom={0} right={0} bg="$primary500" borderRadius="$full" p="$1">
-                      <Icon as={Camera} size="sm" color="$white" />
+                    <Box 
+                      position="absolute" 
+                      bottom={4} 
+                      right={4} 
+                      bg="$primary600" 
+                      borderRadius="$full" 
+                      p="$3"
+                      shadowColor="$primary600"
+                      shadowOffset={{ width: 0, height: 4 }}
+                      shadowOpacity={0.4}
+                      shadowRadius={8}
+                    >
+                      <Icon as={Camera} size="md" color="$white" />
                     </Box>
                   )}
                 </Box>
               </Pressable>
 
-              <VStack space="xs" alignItems="center">
-                <Heading size="lg" color={isDark ? "$white" : "$textLight900"}>{profile?.name || 'User'}</Heading>
-                <Text color={isDark ? "$textDark400" : "$textLight600"} size="sm">{profile?.email}</Text>
+              <VStack space="sm" alignItems="center">
+                <Heading size="2xl" color={isDark ? "$white" : "$textLight900"} textAlign="center" lineHeight="$2xl">
+                  {profile?.name || 'User'}
+                </Heading>
+                <Text color={isDark ? "$textDark300" : "$textLight600"} size="md" textAlign="center">
+                  {profile?.email}
+                </Text>
 
-                <HStack space="sm" alignItems="center" mt="$2">
+                <HStack space="md" alignItems="center" mt="$3">
                   {profile?.subscriptionPlan === 'PRO' ? (
-                    <Badge action="success" variant="solid">
-                      <Icon as={Crown} size="xs" color="$white" mr="$1" />
-                      <BadgeText>Pro Member</BadgeText>
-                    </Badge>
+                    <Box
+                      bg="linear-gradient(135deg, #10B981 0%, #059669 100%)"
+                      px="$5"
+                      py="$2"
+                      borderRadius="$full"
+                      shadowColor="$success600"
+                      shadowOffset={{ width: 0, height: 4 }}
+                      shadowOpacity={0.3}
+                      shadowRadius={8}
+                    >
+                      <HStack space="xs" alignItems="center">
+                        <Icon as={Crown} size="sm" color="$white" />
+                        <Text color="$white" fontWeight="$bold" fontSize="$md">Pro Member</Text>
+                      </HStack>
+                    </Box>
                   ) : (
-                    <Badge action="warning" variant="solid">
-                      <BadgeText>Free Plan</BadgeText>
-                    </Badge>
+                    <Box
+                      bg="linear-gradient(135deg, #F59E0B 0%, #D97706 100%)"
+                      px="$5"
+                      py="$2"
+                      borderRadius="$full"
+                      shadowColor="$warning600"
+                      shadowOffset={{ width: 0, height: 4 }}
+                      shadowOpacity={0.3}
+                      shadowRadius={8}
+                    >
+                      <Text color="$white" fontWeight="$bold" fontSize="$md">Free Plan</Text>
+                    </Box>
                   )}
 
                   {profile?.emailVerified && (
-                    <Badge action="info" variant="subtle">
-                      <Icon as={CheckCircle} size="xs" color="$info600" mr="$1" />
-                      <BadgeText>Verified</BadgeText>
-                    </Badge>
+                    <Box
+                      bg={isDark ? "rgba(59,130,246,0.2)" : "rgba(59,130,246,0.15)"}
+                      px="$4"
+                      py="$2"
+                      borderRadius="$full"
+                      borderWidth={1}
+                      borderColor="$info500"
+                    >
+                      <HStack space="xs" alignItems="center">
+                        <Icon as={CheckCircle} size="xs" color="$info600" />
+                        <Text color="$info600" fontWeight="$bold" fontSize="$sm">Verified</Text>
+                      </HStack>
+                    </Box>
                   )}
                 </HStack>
               </VStack>
 
-              <Button
-                size="sm"
-                variant="outline"
-                action="secondary"
+              <Pressable
                 onPress={() => setShowEditProfile(true)}
+                mt="$2"
               >
-                <ButtonIcon as={Edit3} mr="$1" />
-                <ButtonText>Edit Profile</ButtonText>
-              </Button>
+                <Box
+                  bg={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
+                  px="$6"
+                  py="$3"
+                  borderRadius="$full"
+                  borderWidth={2}
+                  borderColor={isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}
+                  sx={{
+                    ':active': {
+                      transform: [{ scale: 0.95 }]
+                    }
+                  }}
+                >
+                  <HStack space="sm" alignItems="center">
+                    <Icon as={Edit3} size="sm" color={isDark ? "$textDark200" : "$textLight700"} />
+                    <Text color={isDark ? "$textDark200" : "$textLight700"} fontWeight="$semibold" fontSize="$md">
+                      Edit Profile
+                    </Text>
+                  </HStack>
+                </Box>
+              </Pressable>
             </VStack>
           </GlassCard>
         </Box>
@@ -391,43 +482,71 @@ export default function ProfileScreen() {
             <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
           }
         >
-          <VStack space="lg" p="$4">
-            {/* Statistics Card */}
+          <VStack space="xl" px="$5" pb="$8">
+            {/* Enhanced Statistics Card */}
             {stats && (
-              <GlassCard p="$4" opacity={0.08}>
-                <VStack space="md">
-                  <Heading size="sm" color={isDark ? "$white" : "$textLight900"}>Your Statistics</Heading>
-                  <HStack space="md" flexWrap="wrap">
-                    <VStack space="xs" minWidth="45%">
-                      <HStack space="xs" alignItems="center">
-                        <Icon as={Zap} size="xs" color="$primary500" />
-                        <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>Total Ideas</Text>
-                      </HStack>
-                      <Text size="lg" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>{stats.totalIdeas}</Text>
+              <GlassCard p="$6" opacity={0.08}>
+                <VStack space="lg">
+                  <Heading size="xl" color={isDark ? "$white" : "$textLight900"}>
+                    Your Statistics
+                  </Heading>
+                  <HStack space="lg" flexWrap="wrap" justifyContent="space-between">
+                    <VStack space="sm" minWidth="45%" mb="$4">
+                      <Box
+                        bg="rgba(139,92,246,0.2)"
+                        p="$3"
+                        borderRadius="$xl"
+                        alignSelf="flex-start"
+                      >
+                        <Icon as={Sparkles} size="lg" color="$primary600" />
+                      </Box>
+                      <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"} fontWeight="$medium">Total Ideas</Text>
+                      <Text size="2xl" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>
+                        {stats.totalIdeas}
+                      </Text>
                     </VStack>
 
-                    <VStack space="xs" minWidth="45%">
-                      <HStack space="xs" alignItems="center">
-                        <Icon as={MessageSquare} size="xs" color="$info500" />
-                        <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>Total Messages</Text>
-                      </HStack>
-                      <Text size="lg" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>{stats.totalMessages}</Text>
+                    <VStack space="sm" minWidth="45%" mb="$4">
+                      <Box
+                        bg="rgba(59,130,246,0.2)"
+                        p="$3"
+                        borderRadius="$xl"
+                        alignSelf="flex-start"
+                      >
+                        <Icon as={MessageSquare} size="lg" color="$info600" />
+                      </Box>
+                      <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"} fontWeight="$medium">Total Messages</Text>
+                      <Text size="2xl" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>
+                        {stats.totalMessages}
+                      </Text>
                     </VStack>
 
-                    <VStack space="xs" minWidth="45%">
-                      <HStack space="xs" alignItems="center">
-                        <Icon as={Activity} size="xs" color="$success500" />
-                        <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>Active Ideas</Text>
-                      </HStack>
-                      <Text size="lg" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>{stats.activeIdeas}</Text>
+                    <VStack space="sm" minWidth="45%">
+                      <Box
+                        bg="rgba(16,185,129,0.2)"
+                        p="$3"
+                        borderRadius="$xl"
+                        alignSelf="flex-start"
+                      >
+                        <Icon as={TrendingUp} size="lg" color="$success600" />
+                      </Box>
+                      <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"} fontWeight="$medium">Active Ideas</Text>
+                      <Text size="2xl" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>
+                        {stats.activeIdeas}
+                      </Text>
                     </VStack>
 
-                    <VStack space="xs" minWidth="45%">
-                      <HStack space="xs" alignItems="center">
-                        <Icon as={Calendar} size="xs" color="$secondary500" />
-                        <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>Member Since</Text>
-                      </HStack>
-                      <Text size="sm" fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>
+                    <VStack space="sm" minWidth="45%">
+                      <Box
+                        bg="rgba(245,158,11,0.2)"
+                        p="$3"
+                        borderRadius="$xl"
+                        alignSelf="flex-start"
+                      >
+                        <Icon as={Calendar} size="lg" color="$warning600" />
+                      </Box>
+                      <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"} fontWeight="$medium">Member Since</Text>
+                      <Text size="lg" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>
                         {formatMemberSince(stats.memberSince)}
                       </Text>
                     </VStack>
@@ -437,78 +556,134 @@ export default function ProfileScreen() {
             )}
 
             {/* Account Section */}
-            <VStack space="sm">
-              <Heading size="md" color={isDark ? "$white" : "$textLight900"}>Account</Heading>
+            <VStack space="md">
+              <Heading size="xl" color={isDark ? "$white" : "$textLight900"} px="$1">
+                Account
+              </Heading>
 
               {profile?.subscriptionPlan === 'FREE' && (
                 <Pressable onPress={() => router.push('/(app)/upgrade')}>
-                  <GlassCard p="$4" opacity={0.08}>
+                  <GlassCard 
+                    p="$5" 
+                    opacity={0.08}
+                    bg={isDark ? "rgba(245,158,11,0.1)" : "rgba(245,158,11,0.05)"}
+                    borderWidth={2}
+                    borderColor="$warning500"
+                    sx={{
+                      ':active': {
+                        transform: [{ scale: 0.98 }]
+                      }
+                    }}
+                  >
                     <HStack space="md" alignItems="center" justifyContent="space-between">
                       <HStack space="md" alignItems="center" flex={1}>
-                        <Icon as={Crown} size="md" color="$secondary500" />
+                        <Box
+                          bg="rgba(245,158,11,0.2)"
+                          p="$3"
+                          borderRadius="$xl"
+                        >
+                          <Icon as={Crown} size="xl" color="$warning600" />
+                        </Box>
                         <VStack flex={1}>
-                          <Text fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>Upgrade to Pro</Text>
-                          <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
+                          <Text fontWeight="$bold" size="lg" color={isDark ? "$white" : "$textLight900"}>
+                            Upgrade to Pro
+                          </Text>
+                          <Text size="md" color={isDark ? "$textDark300" : "$textLight600"} lineHeight="$md">
                             Get unlimited ideas and AI replies
                           </Text>
                         </VStack>
                       </HStack>
-                      <Icon as={ChevronRight} size="md" color={isDark ? "$textDark400" : "$textLight400"} />
+                      <Icon as={ChevronRight} size="xl" color={isDark ? "$textDark300" : "$textLight400"} />
                     </HStack>
                   </GlassCard>
                 </Pressable>
               )}
 
               <Pressable onPress={() => setShowChangePassword(true)}>
-                <GlassCard p="$4" opacity={0.08}>
+                <GlassCard p="$5" opacity={0.08}>
                   <HStack space="md" alignItems="center" justifyContent="space-between">
                     <HStack space="md" alignItems="center" flex={1}>
-                      <Icon as={Lock} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
-                      <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight900"}>Change Password</Text>
+                      <Box
+                        bg={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
+                        p="$3"
+                        borderRadius="$xl"
+                      >
+                        <Icon as={Lock} size="lg" color={isDark ? "$textDark300" : "$textLight500"} />
+                      </Box>
+                      <Text fontWeight="$semibold" size="lg" color={isDark ? "$white" : "$textLight900"}>
+                        Change Password
+                      </Text>
                     </HStack>
-                    <Icon as={ChevronRight} size="md" color={isDark ? "$textDark400" : "$textLight400"} />
+                    <Icon as={ChevronRight} size="lg" color={isDark ? "$textDark400" : "$textLight400"} />
                   </HStack>
                 </GlassCard>
               </Pressable>
 
               <Pressable>
-                <GlassCard p="$4" opacity={0.08}>
+                <GlassCard p="$5" opacity={0.08}>
                   <HStack space="md" alignItems="center" justifyContent="space-between">
                     <HStack space="md" alignItems="center" flex={1}>
-                      <Icon as={Receipt} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
-                      <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight900"}>Billing History</Text>
+                      <Box
+                        bg={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
+                        p="$3"
+                        borderRadius="$xl"
+                      >
+                        <Icon as={Receipt} size="lg" color={isDark ? "$textDark300" : "$textLight500"} />
+                      </Box>
+                      <Text fontWeight="$semibold" size="lg" color={isDark ? "$white" : "$textLight900"}>
+                        Billing History
+                      </Text>
                     </HStack>
-                    <Icon as={ChevronRight} size="md" color={isDark ? "$textDark400" : "$textLight400"} />
+                    <Icon as={ChevronRight} size="lg" color={isDark ? "$textDark400" : "$textLight400"} />
                   </HStack>
                 </GlassCard>
               </Pressable>
             </VStack>
 
             {/* Preferences Section */}
-            <VStack space="sm">
-              <Heading size="md" color={isDark ? "$white" : "$textLight900"}>Preferences</Heading>
+            <VStack space="md">
+              <Heading size="xl" color={isDark ? "$white" : "$textLight900"} px="$1">
+                Preferences
+              </Heading>
 
-              <GlassCard p="$4" opacity={0.08}>
-                <VStack>
-                  <HStack space="md" alignItems="center" justifyContent="space-between" pb="$4">
+              <GlassCard p="$5" opacity={0.08}>
+                <VStack space="md">
+                  <HStack space="md" alignItems="center" justifyContent="space-between">
                     <HStack space="md" alignItems="center" flex={1}>
-                      <Icon as={Moon} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
-                      <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight900"}>Dark Mode</Text>
+                      <Box
+                        bg={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
+                        p="$3"
+                        borderRadius="$xl"
+                      >
+                        <Icon as={Moon} size="lg" color={isDark ? "$textDark300" : "$textLight500"} />
+                      </Box>
+                      <Text fontWeight="$semibold" size="lg" color={isDark ? "$white" : "$textLight900"}>
+                        Dark Mode
+                      </Text>
                     </HStack>
                     <Switch
                       value={isDarkMode}
                       onToggle={handleDarkModeToggle}
+                      size="lg"
                     />
                   </HStack>
 
                   <Divider bg={isDark ? "rgba(255,255,255,0.1)" : "$borderLight200"} />
 
-                  <HStack space="md" alignItems="center" justifyContent="space-between" py="$4">
+                  <HStack space="md" alignItems="center" justifyContent="space-between">
                     <HStack space="md" alignItems="center" flex={1}>
-                      <Icon as={Bell} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
+                      <Box
+                        bg={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
+                        p="$3"
+                        borderRadius="$xl"
+                      >
+                        <Icon as={Bell} size="lg" color={isDark ? "$textDark300" : "$textLight500"} />
+                      </Box>
                       <VStack flex={1}>
-                        <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight900"}>Push Notifications</Text>
-                        <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
+                        <Text fontWeight="$semibold" size="lg" color={isDark ? "$white" : "$textLight900"}>
+                          Push Notifications
+                        </Text>
+                        <Text size="sm" color={isDark ? "$textDark400" : "$textLight600"}>
                           Get notified when AI responds
                         </Text>
                       </VStack>
@@ -516,17 +691,26 @@ export default function ProfileScreen() {
                     <Switch
                       value={notifications}
                       onToggle={handleNotificationToggle}
+                      size="lg"
                     />
                   </HStack>
 
                   <Divider bg={isDark ? "rgba(255,255,255,0.1)" : "$borderLight200"} />
 
-                  <HStack space="md" alignItems="center" justifyContent="space-between" pt="$4">
+                  <HStack space="md" alignItems="center" justifyContent="space-between">
                     <HStack space="md" alignItems="center" flex={1}>
-                      <Icon as={Mail} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
+                      <Box
+                        bg={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
+                        p="$3"
+                        borderRadius="$xl"
+                      >
+                        <Icon as={Mail} size="lg" color={isDark ? "$textDark300" : "$textLight500"} />
+                      </Box>
                       <VStack flex={1}>
-                        <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight900"}>Marketing Emails</Text>
-                        <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
+                        <Text fontWeight="$semibold" size="lg" color={isDark ? "$white" : "$textLight900"}>
+                          Marketing Emails
+                        </Text>
+                        <Text size="sm" color={isDark ? "$textDark400" : "$textLight600"}>
                           Receive tips and updates
                         </Text>
                       </VStack>
@@ -534,6 +718,7 @@ export default function ProfileScreen() {
                     <Switch
                       value={marketingEmails}
                       onToggle={handleMarketingToggle}
+                      size="lg"
                     />
                   </HStack>
                 </VStack>
@@ -541,104 +726,110 @@ export default function ProfileScreen() {
             </VStack>
 
             {/* Support Section */}
-            <VStack space="sm">
-              <Heading size="md" color={isDark ? "$white" : "$textLight900"}>Support</Heading>
+            <VStack space="md">
+              <Heading size="xl" color={isDark ? "$white" : "$textLight900"} px="$1">
+                Support
+              </Heading>
 
-              <GlassCard p="$0" opacity={0.08}>
-                <Accordion type="single" variant="unfilled">
-              <AccordionItem value="faq">
-                <AccordionHeader>
-                    <AccordionTrigger>
-                      <HStack space="md" alignItems="center" flex={1} p="$4">
-                        <Icon as={HelpCircle} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
-                        <AccordionTitleText color={isDark ? "$white" : "$textLight900"}>Frequently Asked Questions</AccordionTitleText>
+              <GlassCard p="$5" opacity={0.08}>
+                <VStack space="md">
+                  <Pressable>
+                    <HStack space="md" alignItems="center" justifyContent="space-between">
+                      <HStack space="md" alignItems="center" flex={1}>
+                        <Box
+                          bg={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
+                          p="$3"
+                          borderRadius="$xl"
+                        >
+                          <Icon as={HelpCircle} size="lg" color={isDark ? "$textDark300" : "$textLight500"} />
+                        </Box>
+                        <Text fontWeight="$semibold" size="lg" color={isDark ? "$white" : "$textLight900"}>
+                          Help & FAQ
+                        </Text>
                       </HStack>
-                      <AccordionIcon as={ChevronDown} color={isDark ? "$textDark400" : "$textLight500"} />
-                    </AccordionTrigger>
-                  </AccordionHeader>
-                  <AccordionContent>
-                    <VStack space="md" p="$4">
-                      <VStack space="xs">
-                        <Text fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>How do I upgrade my plan?</Text>
-                        <Text size="sm" color={isDark ? "$textDark400" : "$textLight600"}>
-                          Tap the Upgrade to Pro button to see available plans and complete your purchase.
-                        </Text>
-                      </VStack>
-                      <VStack space="xs">
-                        <Text fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>Can I cancel anytime?</Text>
-                        <Text size="sm" color={isDark ? "$textDark400" : "$textLight600"}>
-                          Yes, you can cancel your subscription at any time through your device's app store settings.
-                        </Text>
-                      </VStack>
-                      <VStack space="xs">
-                        <Text fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>How do I reset my password?</Text>
-                        <Text size="sm" color={isDark ? "$textDark400" : "$textLight600"}>
-                          Use the Change Password option above or request a reset link from the login screen.
-                        </Text>
-                      </VStack>
-                    </VStack>
-                  </AccordionContent>
-                </AccordionItem>
+                      <Icon as={ChevronRight} size="lg" color={isDark ? "$textDark400" : "$textLight400"} />
+                    </HStack>
+                  </Pressable>
 
-                <AccordionItem value="contact">
-                  <AccordionHeader>
-                    <AccordionTrigger>
-                      <HStack space="md" alignItems="center" flex={1} p="$4">
-                        <Icon as={Phone} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
-                        <AccordionTitleText color={isDark ? "$white" : "$textLight900"}>Contact Support</AccordionTitleText>
+                  <Divider bg={isDark ? "rgba(255,255,255,0.1)" : "$borderLight200"} />
+
+                  <Pressable>
+                    <HStack space="md" alignItems="center" justifyContent="space-between">
+                      <HStack space="md" alignItems="center" flex={1}>
+                        <Box
+                          bg={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
+                          p="$3"
+                          borderRadius="$xl"
+                        >
+                          <Icon as={FileText} size="lg" color={isDark ? "$textDark300" : "$textLight500"} />
+                        </Box>
+                        <Text fontWeight="$semibold" size="lg" color={isDark ? "$white" : "$textLight900"}>
+                          Terms of Service
+                        </Text>
                       </HStack>
-                      <AccordionIcon as={ChevronDown} color={isDark ? "$textDark400" : "$textLight500"} />
-                    </AccordionTrigger>
-                  </AccordionHeader>
-                  <AccordionContent>
-                    <VStack space="md" p="$4">
-                      <Pressable onPress={() => Linking.openURL('mailto:support@ideaspark.app')}>
-                        <HStack space="md" alignItems="center">
-                          <Icon as={Mail} size="sm" color="$primary500" />
-                          <Text color="$primary600">support@ideaspark.app</Text>
-                        </HStack>
-                      </Pressable>
-                      <Text size="sm" color={isDark ? "$textDark400" : "$textLight600"}>
-                        We typically respond within 24 hours during business days.
-                      </Text>
-                    </VStack>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </GlassCard>
-          </VStack>
+                      <Icon as={ChevronRight} size="lg" color={isDark ? "$textDark400" : "$textLight400"} />
+                    </HStack>
+                  </Pressable>
 
-            {/* Platform Test Button (Dev Only) */}
-            {__DEV__ && (
-              <Button
-                variant="solid"
-                bg="$purple500"
-                onPress={() => router.push('/(app)/platform-test')}
-              >
-                <ButtonIcon as={Smartphone} mr="$2" />
-                <ButtonText>Run Platform Tests</ButtonText>
-              </Button>
-            )}
+                  <Divider bg={isDark ? "rgba(255,255,255,0.1)" : "$borderLight200"} />
+
+                  <Pressable>
+                    <HStack space="md" alignItems="center" justifyContent="space-between">
+                      <HStack space="md" alignItems="center" flex={1}>
+                        <Box
+                          bg={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
+                          p="$3"
+                          borderRadius="$xl"
+                        >
+                          <Icon as={Shield} size="lg" color={isDark ? "$textDark300" : "$textLight500"} />
+                        </Box>
+                        <Text fontWeight="$semibold" size="lg" color={isDark ? "$white" : "$textLight900"}>
+                          Privacy Policy
+                        </Text>
+                      </HStack>
+                      <Icon as={ChevronRight} size="lg" color={isDark ? "$textDark400" : "$textLight400"} />
+                    </HStack>
+                  </Pressable>
+                </VStack>
+              </GlassCard>
+            </VStack>
 
             {/* Danger Zone */}
-            <VStack space="sm" pb="$8">
-              <Button
-                variant="solid"
-                action="negative"
-                onPress={() => {
-                  logger.logUserAction('logout');
-                  signOut();
-                }}
-              >
-                <ButtonIcon as={LogOut} mr="$2" />
-                <ButtonText>Log Out</ButtonText>
-              </Button>
+            <VStack space="md">
+              <Heading size="xl" color="$error600" px="$1">
+                Danger Zone
+              </Heading>
+
+              <Pressable onPress={handleSignOut}>
+                <GlassCard p="$5" opacity={0.08}>
+                  <HStack space="md" alignItems="center">
+                    <Box
+                      bg="rgba(239,68,68,0.2)"
+                      p="$3"
+                      borderRadius="$xl"
+                    >
+                      <Icon as={LogOut} size="lg" color="$error600" />
+                    </Box>
+                    <Text fontWeight="$semibold" size="lg" color="$error600">
+                      Sign Out
+                    </Text>
+                  </HStack>
+                </GlassCard>
+              </Pressable>
 
               <Pressable onPress={() => setShowDeleteAccount(true)}>
-                <GlassCard p="$4" opacity={0.08}>
-                  <HStack space="md" alignItems="center" justifyContent="center">
-                    <Icon as={Trash2} size="md" color="$error500" />
-                    <Text color="$error600" fontWeight="$medium">Delete Account</Text>
+                <GlassCard p="$5" opacity={0.08} bg="rgba(239,68,68,0.05)">
+                  <HStack space="md" alignItems="center">
+                    <Box
+                      bg="rgba(239,68,68,0.2)"
+                      p="$3"
+                      borderRadius="$xl"
+                    >
+                      <Icon as={Trash2} size="lg" color="$error600" />
+                    </Box>
+                    <Text fontWeight="$semibold" size="lg" color="$error600">
+                      Delete Account
+                    </Text>
                   </HStack>
                 </GlassCard>
               </Pressable>
@@ -654,54 +845,35 @@ export default function ProfileScreen() {
         size="lg"
       >
         <ModalBackdrop />
-        <ModalContent>
-          <ModalHeader>
-            <Heading size="lg">Edit Profile</Heading>
+        <ModalContent bg={isDark ? "$backgroundDark900" : "$white"}>
+          <ModalHeader borderBottomWidth={1} borderColor={isDark ? "$borderDark800" : "$borderLight200"}>
+            <Heading size="xl">Edit Profile</Heading>
             <ModalCloseButton>
-              <Icon as={X} />
+              <Icon as={X} size="lg" />
             </ModalCloseButton>
           </ModalHeader>
-          <ModalBody>
-            <VStack space="md">
-              <FormControl>
-                <FormControlLabel>
-                  <FormControlLabelText>Name</FormControlLabelText>
-                </FormControlLabel>
-                <Input variant="outline" size="lg">
-                  <InputField
-                    placeholder="Enter your name"
-                    value={editFormData.name}
-                    onChangeText={(text) => setEditFormData({ ...editFormData, name: text })}
-                  />
-                </Input>
-              </FormControl>
-
-              <FormControl>
-                <FormControlLabel>
-                  <FormControlLabelText>Email</FormControlLabelText>
-                </FormControlLabel>
-                <Input variant="outline" size="lg">
-                  <InputSlot pl="$3">
-                    <InputIcon as={Mail} />
-                  </InputSlot>
-                  <InputField
-                    placeholder="Enter your email"
-                    value={editFormData.email}
-                    onChangeText={(text) => setEditFormData({ ...editFormData, email: text })}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </Input>
-              </FormControl>
-            </VStack>
+          <ModalBody py="$6">
+            <FormControl>
+              <FormControlLabel mb="$2">
+                <FormControlLabelText fontWeight="$semibold" size="md">Name</FormControlLabelText>
+              </FormControlLabel>
+              <Input variant="outline" size="xl">
+                <InputField
+                  placeholder="Enter your name"
+                  value={editName}
+                  onChangeText={setEditName}
+                />
+              </Input>
+            </FormControl>
           </ModalBody>
-          <ModalFooter>
-            <HStack space="md">
+          <ModalFooter borderTopWidth={1} borderColor={isDark ? "$borderDark800" : "$borderLight200"}>
+            <HStack space="md" flex={1}>
               <Button
                 variant="outline"
                 action="secondary"
                 onPress={() => setShowEditProfile(false)}
                 flex={1}
+                size="lg"
               >
                 <ButtonText>Cancel</ButtonText>
               </Button>
@@ -709,13 +881,14 @@ export default function ProfileScreen() {
                 variant="solid"
                 action="primary"
                 onPress={handleUpdateProfile}
-                isDisabled={updateProfile.isPending}
+                isDisabled={updateProfile.isPending || !editName.trim()}
                 flex={1}
+                size="lg"
               >
                 {updateProfile.isPending ? (
                   <Spinner color="$white" />
                 ) : (
-                  <ButtonText>Save Changes</ButtonText>
+                  <ButtonText>Save</ButtonText>
                 )}
               </Button>
             </HStack>
@@ -730,71 +903,80 @@ export default function ProfileScreen() {
         size="lg"
       >
         <ModalBackdrop />
-        <ModalContent>
-          <ModalHeader>
-            <Heading size="lg">Change Password</Heading>
+        <ModalContent bg={isDark ? "$backgroundDark900" : "$white"}>
+          <ModalHeader borderBottomWidth={1} borderColor={isDark ? "$borderDark800" : "$borderLight200"}>
+            <Heading size="xl">Change Password</Heading>
             <ModalCloseButton>
-              <Icon as={X} />
+              <Icon as={X} size="lg" />
             </ModalCloseButton>
           </ModalHeader>
-          <ModalBody>
-            <VStack space="md">
+          <ModalBody py="$6">
+            <VStack space="lg">
               <FormControl>
-                <FormControlLabel>
-                  <FormControlLabelText>Current Password</FormControlLabelText>
+                <FormControlLabel mb="$2">
+                  <FormControlLabelText fontWeight="$semibold" size="md">Current Password</FormControlLabelText>
                 </FormControlLabel>
-                <Input variant="outline" size="lg">
+                <Input variant="outline" size="xl">
                   <InputField
                     placeholder="Enter current password"
-                    value={passwordFormData.currentPassword}
-                    onChangeText={(text) => setPasswordFormData({ ...passwordFormData, currentPassword: text })}
-                    secureTextEntry={!showPasswordCurrent}
+                    value={oldPassword}
+                    onChangeText={setOldPassword}
+                    secureTextEntry={!showOldPassword}
                   />
-                  <InputSlot pr="$3" onPress={() => setShowPasswordCurrent(!showPasswordCurrent)}>
-                    <InputIcon as={showPasswordCurrent ? Eye : EyeOff} />
+                  <InputSlot pr="$3" onPress={() => setShowOldPassword(!showOldPassword)}>
+                    <InputIcon as={showOldPassword ? EyeOff : Eye} />
                   </InputSlot>
                 </Input>
               </FormControl>
 
               <FormControl>
-                <FormControlLabel>
-                  <FormControlLabelText>New Password</FormControlLabelText>
+                <FormControlLabel mb="$2">
+                  <FormControlLabelText fontWeight="$semibold" size="md">New Password</FormControlLabelText>
                 </FormControlLabel>
-                <Input variant="outline" size="lg">
+                <Input variant="outline" size="xl">
                   <InputField
                     placeholder="Enter new password"
-                    value={passwordFormData.newPassword}
-                    onChangeText={(text) => setPasswordFormData({ ...passwordFormData, newPassword: text })}
-                    secureTextEntry={!showPasswordNew}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showNewPassword}
                   />
-                  <InputSlot pr="$3" onPress={() => setShowPasswordNew(!showPasswordNew)}>
-                    <InputIcon as={showPasswordNew ? Eye : EyeOff} />
+                  <InputSlot pr="$3" onPress={() => setShowNewPassword(!showNewPassword)}>
+                    <InputIcon as={showNewPassword ? EyeOff : Eye} />
                   </InputSlot>
                 </Input>
               </FormControl>
 
               <FormControl>
-                <FormControlLabel>
-                  <FormControlLabelText>Confirm New Password</FormControlLabelText>
+                <FormControlLabel mb="$2">
+                  <FormControlLabelText fontWeight="$semibold" size="md">Confirm New Password</FormControlLabelText>
                 </FormControlLabel>
-                <Input variant="outline" size="lg">
+                <Input variant="outline" size="xl">
                   <InputField
                     placeholder="Confirm new password"
-                    value={passwordFormData.confirmPassword}
-                    onChangeText={(text) => setPasswordFormData({ ...passwordFormData, confirmPassword: text })}
-                    secureTextEntry={!showPasswordNew}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
                   />
+                  <InputSlot pr="$3" onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                    <InputIcon as={showConfirmPassword ? EyeOff : Eye} />
+                  </InputSlot>
                 </Input>
               </FormControl>
             </VStack>
           </ModalBody>
-          <ModalFooter>
-            <HStack space="md">
+          <ModalFooter borderTopWidth={1} borderColor={isDark ? "$borderDark800" : "$borderLight200"}>
+            <HStack space="md" flex={1}>
               <Button
                 variant="outline"
                 action="secondary"
-                onPress={() => setShowChangePassword(false)}
+                onPress={() => {
+                  setShowChangePassword(false);
+                  setOldPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
                 flex={1}
+                size="lg"
               >
                 <ButtonText>Cancel</ButtonText>
               </Button>
@@ -804,6 +986,7 @@ export default function ProfileScreen() {
                 onPress={handleChangePassword}
                 isDisabled={changePassword.isPending}
                 flex={1}
+                size="lg"
               >
                 {changePassword.isPending ? (
                   <Spinner color="$white" />
@@ -823,30 +1006,30 @@ export default function ProfileScreen() {
         size="lg"
       >
         <ModalBackdrop />
-        <ModalContent>
-          <ModalHeader>
-            <Heading size="lg">Delete Account</Heading>
+        <ModalContent bg={isDark ? "$backgroundDark900" : "$white"}>
+          <ModalHeader borderBottomWidth={1} borderColor={isDark ? "$borderDark800" : "$borderLight200"}>
+            <Heading size="xl" color="$error600">Delete Account</Heading>
             <ModalCloseButton>
-              <Icon as={X} />
+              <Icon as={X} size="lg" />
             </ModalCloseButton>
           </ModalHeader>
-          <ModalBody>
-            <VStack space="md">
-              <Alert action="error" variant="accent">
+          <ModalBody py="$6">
+            <VStack space="lg">
+              <Alert action="error" variant="solid">
                 <AlertIcon as={AlertTriangle} mr="$3" />
                 <VStack flex={1}>
-                  <AlertText fontWeight="$semibold">This action cannot be undone!</AlertText>
-                  <AlertText size="sm">
+                  <AlertText fontWeight="$bold" size="md">This action cannot be undone!</AlertText>
+                  <AlertText size="sm" mt="$1">
                     All your ideas, messages, and subscription will be permanently deleted.
                   </AlertText>
                 </VStack>
               </Alert>
 
               <FormControl>
-                <FormControlLabel>
-                  <FormControlLabelText>Enter your password to confirm</FormControlLabelText>
+                <FormControlLabel mb="$2">
+                  <FormControlLabelText fontWeight="$semibold" size="md">Enter your password to confirm</FormControlLabelText>
                 </FormControlLabel>
-                <Input variant="outline" size="lg">
+                <Input variant="outline" size="xl">
                   <InputField
                     placeholder="Enter password"
                     value={deletePassword}
@@ -857,8 +1040,8 @@ export default function ProfileScreen() {
               </FormControl>
             </VStack>
           </ModalBody>
-          <ModalFooter>
-            <HStack space="md">
+          <ModalFooter borderTopWidth={1} borderColor={isDark ? "$borderDark800" : "$borderLight200"}>
+            <HStack space="md" flex={1}>
               <Button
                 variant="outline"
                 action="secondary"
@@ -867,6 +1050,7 @@ export default function ProfileScreen() {
                   setDeletePassword('');
                 }}
                 flex={1}
+                size="lg"
               >
                 <ButtonText>Cancel</ButtonText>
               </Button>
@@ -876,6 +1060,7 @@ export default function ProfileScreen() {
                 onPress={handleDeleteAccount}
                 isDisabled={deleteAccount.isPending || !deletePassword}
                 flex={1}
+                size="lg"
               >
                 {deleteAccount.isPending ? (
                   <Spinner color="$white" />
