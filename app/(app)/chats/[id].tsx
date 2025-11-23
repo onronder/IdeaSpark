@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -25,7 +25,6 @@ import {
   Spinner,
   Icon,
   Center,
-  Card,
 } from "@gluestack-ui/themed";
 import {
   Send,
@@ -37,6 +36,7 @@ import {
   ThumbsUp,
   RefreshCw,
   AlertTriangle,
+  Copy,
 } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from "@/contexts/SupabaseAuthContext";
@@ -45,6 +45,7 @@ import { useIdea, useMessages, useSendMessage, useUsageSummary } from '@/hooks/u
 import { useToast } from '@/contexts/ToastContext';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GradientBackground, GlassCard, AnimatedOrb } from '@/components/ui';
 
 interface Message {
   id: string;
@@ -54,7 +55,7 @@ interface Message {
   tokens?: number;
 }
 
-// Memoized Message Item Component with Glassmorphism
+// Enhanced Message Item Component
 const MessageItem = React.memo(({
   message,
   formatTimestamp,
@@ -67,49 +68,55 @@ const MessageItem = React.memo(({
   <Box
     alignSelf={message.role === 'USER' ? 'flex-end' : 'flex-start'}
     maxWidth="85%"
-    mb="$3"
+    mb="$4"
   >
     {message.role === 'USER' ? (
-      // User message - solid colored glass effect
+      // Enhanced User message
       <Box
-        borderRadius="$2xl"
-        px="$4"
-        py="$3"
+        borderRadius="$3xl"
+        px="$5"
+        py="$4"
         bg="$primary600"
-        shadowColor="$black"
-        shadowOffset={{ width: 0, height: 2 }}
-        shadowOpacity={0.1}
-        shadowRadius={4}
+        shadowColor="$primary600"
+        shadowOffset={{ width: 0, height: 4 }}
+        shadowOpacity={0.3}
+        shadowRadius={8}
       >
-        <Text color="$white" lineHeight="$lg">
+        <Text color="$white" lineHeight="$xl" fontSize="$md">
           {message.content}
         </Text>
-        <Text size="xs" color="$primary200" mt="$2">
+        <Text size="xs" color="$primary200" mt="$2" fontWeight="$medium">
           {formatTimestamp(message.createdAt)}
         </Text>
       </Box>
     ) : (
-      // AI/System message - card
-      <Card
-        px="$4"
-        py="$3"
-        variant="elevated"
-        bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
-        borderColor={isDark ? "$borderDark700" : "$borderLight200"}
-      >
+      // Enhanced AI/System message
+      <GlassCard px="$5" py="$4" opacity={message.role === 'SYSTEM' ? 0.08 : 0.08}>
         {message.role !== 'USER' && (
-          <HStack space="xs" alignItems="center" mb="$2">
+          <HStack space="sm" alignItems="center" mb="$3">
             {message.role === 'ASSISTANT' ? (
               <>
-                <Icon as={Sparkles} size="xs" color="$primary600" />
-                <Text size="xs" fontWeight="$semibold" color={isDark ? "$textDark300" : "$primary700"}>
+                <Box
+                  bg="rgba(139,92,246,0.2)"
+                  p="$1.5"
+                  borderRadius="$full"
+                >
+                  <Icon as={Sparkles} size="sm" color="$primary600" />
+                </Box>
+                <Text size="sm" fontWeight="$bold" color={isDark ? "$primary400" : "$primary700"}>
                   AI Assistant
                 </Text>
               </>
             ) : (
               <>
-                <Icon as={MessageCircle} size="xs" color={isDark ? "$textDark400" : "$textLight600"} />
-                <Text size="xs" fontWeight="$semibold" color={isDark ? "$textDark300" : "$textLight800"}>
+                <Box
+                  bg={isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"}
+                  p="$1.5"
+                  borderRadius="$full"
+                >
+                  <Icon as={MessageCircle} size="sm" color={isDark ? "$textDark400" : "$textLight500"} />
+                </Box>
+                <Text size="sm" fontWeight="$bold" color={isDark ? "$textDark300" : "$textLight700"}>
                   System
                 </Text>
               </>
@@ -117,29 +124,44 @@ const MessageItem = React.memo(({
           </HStack>
         )}
 
-        <Text color={isDark ? "$textDark50" : "$textLight900"} lineHeight="$lg">
+        <Text color={isDark ? "$white" : "$textLight900"} lineHeight="$xl" fontSize="$md">
           {message.content}
         </Text>
 
-        <HStack justifyContent="space-between" alignItems="center" mt="$2">
-          <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
+        <HStack justifyContent="space-between" alignItems="center" mt="$3">
+          <Text size="xs" color={isDark ? "$textDark400" : "$textLight500"} fontWeight="$medium">
             {formatTimestamp(message.createdAt)}
             {message.tokens && ` • ${message.tokens} tokens`}
           </Text>
 
-          {/* Action icons for assistant messages */}
+          {/* Enhanced Action icons for assistant messages */}
           {message.role === 'ASSISTANT' && (
-            <HStack space="sm">
-              <Pressable accessibilityRole="button" accessibilityLabel="Like message">
-                <Icon as={ThumbsUp} size="sm" color={isDark ? "$textDark400" : "$textLight600"} />
+            <HStack space="md">
+              <Pressable 
+                accessibilityRole="button" 
+                accessibilityLabel="Copy message"
+                p="$1"
+              >
+                <Icon as={Copy} size="sm" color={isDark ? "$textDark400" : "$textLight500"} />
               </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel="Regenerate message">
-                <Icon as={RefreshCw} size="sm" color={isDark ? "$textDark400" : "$textLight600"} />
+              <Pressable 
+                accessibilityRole="button" 
+                accessibilityLabel="Like message"
+                p="$1"
+              >
+                <Icon as={ThumbsUp} size="sm" color={isDark ? "$textDark400" : "$textLight500"} />
+              </Pressable>
+              <Pressable 
+                accessibilityRole="button" 
+                accessibilityLabel="Regenerate message"
+                p="$1"
+              >
+                <Icon as={RefreshCw} size="sm" color={isDark ? "$textDark400" : "$textLight500"} />
               </Pressable>
             </HStack>
           )}
         </HStack>
-      </Card>
+      </GlassCard>
     )}
   </Box>
 ));
@@ -270,67 +292,77 @@ export default function ChatScreen() {
     return date.toLocaleDateString();
   };
 
-  // Render header component for FlashList
+  // Enhanced render header component for FlashList
   const renderListHeader = useCallback(() => (
-    <VStack space="md" px="$4" pt="$4">
-      {/* Initial idea description */}
-      <Card
-        p="$4"
-        variant="elevated"
-        bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
-        borderColor={isDark ? "$borderDark700" : "$borderLight200"}
-      >
-        <HStack space="sm" alignItems="center" mb="$2">
-          <Icon as={Lightbulb} size="md" color="$primary600" />
-          <Text fontWeight="$semibold" color={isDark ? "$textDark50" : "$primary900"}>Your Idea</Text>
+    <VStack space="lg" px="$5" pt="$6" pb="$4">
+      {/* Enhanced initial idea description */}
+      <GlassCard p="$5" opacity={0.1}>
+        <HStack space="md" alignItems="flex-start" mb="$3">
+          <Box
+            bg="rgba(139,92,246,0.2)"
+            p="$3"
+            borderRadius="$2xl"
+          >
+            <Icon as={Lightbulb} size="xl" color="$primary600" />
+          </Box>
+          <VStack flex={1}>
+            <Text fontWeight="$bold" size="lg" color={isDark ? "$white" : "$primary900"} mb="$2">
+              Your Idea
+            </Text>
+            <Text color={isDark ? "$textDark200" : "$textLight700"} lineHeight="$lg" fontSize="$md">
+              {idea.description}
+            </Text>
+          </VStack>
         </HStack>
-        <Text color={isDark ? "$textDark300" : "$textLight700"}>{idea.description}</Text>
-      </Card>
+      </GlassCard>
 
-      {/* Welcome message if no messages */}
+      {/* Enhanced welcome message if no messages */}
       {(!messages || messages.length === 0) && (
-        <Card
-          p="$4"
-          mb="$3"
-          variant="elevated"
-          bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
-          borderColor={isDark ? "$borderDark700" : "$borderLight200"}
-        >
-          <HStack space="sm" alignItems="flex-start">
-            <Box bg="$primary100" borderRadius="$full" p="$2">
-              <Icon as={Sparkles} size="sm" color="$primary600" />
+        <GlassCard p="$5" opacity={0.08}>
+          <HStack space="md" alignItems="flex-start">
+            <Box 
+              bg="rgba(139,92,246,0.2)" 
+              borderRadius="$full" 
+              p="$3"
+            >
+              <Icon as={Sparkles} size="lg" color="$primary600" />
             </Box>
-            <VStack flex={1} space="xs">
-              <Text fontWeight="$semibold" color={isDark ? "$textDark50" : "$textLight900"}>AI Assistant</Text>
-              <Text color={isDark ? "$textDark300" : "$textLight700"}>
+            <VStack flex={1} space="sm">
+              <Text fontWeight="$bold" size="lg" color={isDark ? "$white" : "$textLight900"}>
+                AI Assistant
+              </Text>
+              <Text color={isDark ? "$textDark200" : "$textLight700"} lineHeight="$lg" fontSize="$md">
                 Hello! I'm here to help refine your {idea.category.toLowerCase()} idea.
                 What specific aspect would you like to explore first?
               </Text>
-              <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"} mt="$2">Just now</Text>
+              <Text size="sm" color={isDark ? "$textDark400" : "$textLight500"} mt="$2" fontWeight="$medium">
+                Just now
+              </Text>
             </VStack>
           </HStack>
-        </Card>
+        </GlassCard>
       )}
     </VStack>
   ), [idea, messages, isDark]);
 
-  // Render footer component for FlashList with typing indicator
+  // Enhanced render footer component for FlashList with typing indicator
   const renderListFooter = useCallback(() => (
-    <Box px="$4" pb="$4">
+    <Box px="$5" pb="$6">
       {(sendMessage.isPending || isWaitingForResponse) && (
         <Box alignSelf="flex-start" maxWidth="85%">
-          <Card
-            px="$4"
-            py="$3"
-            variant="elevated"
-            bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
-            borderColor={isDark ? "$borderDark700" : "$borderLight200"}
-          >
-            <HStack space="sm" alignItems="center">
+          <GlassCard px="$5" py="$4" opacity={0.08}>
+            <HStack space="md" alignItems="center">
               <Spinner size="small" color="$primary600" />
-              <Text color={isDark ? "$textDark300" : "$textLight700"}>AI is thinking...</Text>
+              <VStack>
+                <Text color={isDark ? "$white" : "$textLight900"} fontWeight="$semibold">
+                  AI is thinking...
+                </Text>
+                <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
+                  Analyzing your message
+                </Text>
+              </VStack>
             </HStack>
-          </Card>
+          </GlassCard>
         </Box>
       )}
     </Box>
@@ -338,7 +370,7 @@ export default function ChatScreen() {
 
   // Render message item
   const renderMessage = useCallback(({ item }: { item: Message }) => (
-    <Box px="$4">
+    <Box px="$5">
       <MessageItem message={item} formatTimestamp={formatTimestamp} isDark={isDark} />
     </Box>
   ), [isDark]);
@@ -348,67 +380,81 @@ export default function ChatScreen() {
 
   if (ideaLoading || messagesLoading) {
     return (
-      <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
-        <Center flex={1}>
-          <Spinner size="large" color="$primary500" />
-          <Text mt="$6" color={isDark ? "$textDark300" : "$textLight700"} size="lg">
-            Loading conversation...
-          </Text>
-        </Center>
+      <Box flex={1}>
+        <GradientBackground>
+          <Center flex={1}>
+            <AnimatedOrb size={100} icon="sparkles" />
+            <Text mt="$8" color={isDark ? "$white" : "$textLight900"} size="xl" fontWeight="$semibold">
+              Loading conversation...
+            </Text>
+          </Center>
+        </GradientBackground>
       </Box>
     );
   }
 
   if (!idea) {
     return (
-      <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
-        <Center flex={1} px="$6">
-          <Icon as={Lightbulb} size="xl" color={isDark ? "$textDark300" : "$textLight600"} />
-          <Heading size="xl" color={isDark ? "$textDark50" : "$textLight900"} mb="$3" mt="$6" textAlign="center">
-            Idea not found
-          </Heading>
-          <Text size="md" color={isDark ? "$textDark300" : "$textLight700"} textAlign="center" mb="$8">
-            This conversation doesn't exist or you don't have access to it
-          </Text>
-          <Button variant="solid" action="primary" onPress={handleBack}>
-            <ButtonText>Go Back</ButtonText>
-          </Button>
-        </Center>
+      <Box flex={1}>
+        <GradientBackground>
+          <Center flex={1} px="$8">
+            <AnimatedOrb size={120} icon="lightbulb" />
+            <Heading size="2xl" color={isDark ? "$white" : "$textLight900"} mb="$4" mt="$8" textAlign="center" lineHeight="$2xl">
+              Idea not found
+            </Heading>
+            <Text size="lg" color={isDark ? "$textDark300" : "$textLight600"} textAlign="center" mb="$10" lineHeight="$lg">
+              This conversation doesn't exist or you don't have access to it
+            </Text>
+            <Pressable onPress={handleBack}>
+              <Box
+                bg="$primary600"
+                px="$8"
+                py="$4"
+                borderRadius="$2xl"
+                shadowColor="$primary600"
+                shadowOffset={{ width: 0, height: 8 }}
+                shadowOpacity={0.4}
+                shadowRadius={16}
+              >
+                <ButtonText color="$white" fontWeight="$bold" fontSize="$lg">Go Back</ButtonText>
+              </Box>
+            </Pressable>
+          </Center>
+        </GradientBackground>
       </Box>
     );
   }
 
   return (
-    <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={0}
-      >
-        <Box flex={1}>
-          {/* Header */}
-          <Box px="$4" pt={insets.top + 16} pb="$4">
-            <Card
-              p="$4"
-              variant="elevated"
-              bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
-              borderColor={isDark ? "$borderDark700" : "$borderLight200"}
-            >
+    <Box flex={1}>
+      <GradientBackground>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={0}
+        >
+          <Box flex={1}>
+            {/* Enhanced Header */}
+            <Box px="$5" pt={insets.top + 20} pb="$4">
+              <GlassCard p="$5" opacity={0.1}>
                 <HStack justifyContent="space-between" alignItems="center">
-                  <HStack space="sm" alignItems="center" flex={1}>
+                  <HStack space="md" alignItems="center" flex={1}>
                     <Pressable
                       onPress={handleBack}
                       accessibilityRole="button"
                       accessibilityLabel="Go back to conversations"
                       accessibilityHint="Double tap to return to conversation list"
+                      p="$2"
+                      borderRadius="$full"
+                      bg={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)"}
                     >
-                      <Icon as={ArrowLeft} size="lg" color={isDark ? "$textDark50" : "$textLight900"} />
+                      <Icon as={ArrowLeft} size="xl" color={isDark ? "$white" : "$textLight900"} />
                     </Pressable>
                     <VStack flex={1}>
-                      <Text size="lg" fontWeight="$bold" color={isDark ? "$textDark50" : "$textLight900"} numberOfLines={1}>
+                      <Text size="xl" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"} numberOfLines={1} lineHeight="$xl">
                         {idea.title}
                       </Text>
-                      <HStack space="xs" alignItems="center" mt="$1">
+                      <HStack space="sm" alignItems="center" mt="$1">
                         <Badge
                           variant="solid"
                           action={
@@ -418,9 +464,9 @@ export default function ChatScreen() {
                           }
                           size="sm"
                         >
-                          <BadgeText>{idea.status}</BadgeText>
+                          <BadgeText fontSize="$xs">{idea.status}</BadgeText>
                         </Badge>
-                        <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
+                        <Text size="sm" color={isDark ? "$textDark400" : "$textLight500"} fontWeight="$medium">
                           {idea.category}
                         </Text>
                       </HStack>
@@ -428,41 +474,62 @@ export default function ChatScreen() {
                   </HStack>
 
                   {user?.subscriptionPlan === 'PRO' ? (
-                    <Badge variant="solid" action="success" size="md">
-                      <BadgeText>PRO</BadgeText>
-                    </Badge>
+                    <Box
+                      bg="linear-gradient(135deg, #10B981 0%, #059669 100%)"
+                      px="$3"
+                      py="$2"
+                      borderRadius="$full"
+                      shadowColor="$success600"
+                      shadowOffset={{ width: 0, height: 4 }}
+                      shadowOpacity={0.3}
+                      shadowRadius={8}
+                    >
+                      <HStack space="xs" alignItems="center">
+                        <Icon as={Crown} size="sm" color="$white" />
+                        <Text color="$white" fontWeight="$bold" fontSize="$sm">PRO</Text>
+                      </HStack>
+                    </Box>
                   ) : (
                     <Pressable onPress={() => router.push('/(app)/upgrade')}>
-                      <Badge variant="solid" action="warning" size="md">
-                        <BadgeText>
+                      <Box
+                        bg="linear-gradient(135deg, #F59E0B 0%, #D97706 100%)"
+                        px="$3"
+                        py="$2"
+                        borderRadius="$full"
+                        shadowColor="$warning600"
+                        shadowOffset={{ width: 0, height: 4 }}
+                        shadowOpacity={0.3}
+                        shadowRadius={8}
+                      >
+                        <Text color="$white" fontWeight="$bold" fontSize="$sm">
                           {remainingReplies !== null ? `${remainingReplies} left` : 'FREE'}
-                        </BadgeText>
-                      </Badge>
+                        </Text>
+                      </Box>
                     </Pressable>
                   )}
                 </HStack>
-              </Card>
+              </GlassCard>
             </Box>
 
-            {/* Usage Warning for Free Users */}
+            {/* Enhanced Usage Warning for Free Users */}
             {isFreePlan && remainingReplies !== null && remainingReplies <= 1 && (
-              <Box px="$4" pb="$3">
-                <Card
-                  p="$3"
-                  variant="elevated"
-                  bg={isDark ? "$backgroundDark900" : "$warning50"}
-                  borderColor="$warning500"
-                  borderWidth={1}
-                >
-                  <HStack space="sm" alignItems="center">
-                    <Icon as={AlertTriangle} size="sm" color="$warning500" />
-                    <Text size="sm" color={isDark ? "$textDark50" : "$textLight900"} flex={1}>
+              <Box px="$5" pb="$4">
+                <GlassCard p="$4" opacity={0.1} bg={isDark ? "rgba(251,191,36,0.2)" : "rgba(251,191,36,0.15)"}>
+                  <HStack space="md" alignItems="center">
+                    <Box
+                      bg="rgba(245,158,11,0.3)"
+                      p="$2"
+                      borderRadius="$full"
+                    >
+                      <Icon as={AlertTriangle} size="lg" color="$warning600" />
+                    </Box>
+                    <Text size="md" color={isDark ? "$white" : "$textLight900"} flex={1} fontWeight="$semibold" lineHeight="$md">
                       {remainingReplies === 0
                         ? "You've used all your free replies. Upgrade to continue!"
                         : 'This is your last free reply. Make it count!'}
                     </Text>
                   </HStack>
-                </Card>
+                </GlassCard>
               </Box>
             )}
 
@@ -472,7 +539,7 @@ export default function ChatScreen() {
                 ref={flashListRef}
                 data={messages || []}
                 renderItem={renderMessage}
-                estimatedItemSize={100}
+                estimatedItemSize={120}
                 ListHeaderComponent={renderListHeader}
                 ListFooterComponent={renderListFooter}
                 showsVerticalScrollIndicator={false}
@@ -480,68 +547,95 @@ export default function ChatScreen() {
               />
             </Box>
 
-            {/* Input Area */}
-            <Box
-              px="$4"
-              pt="$4"
-              pb={insets.bottom + 16}
-              bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}
-              borderTopWidth={1}
-              borderTopColor={isDark ? "$borderDark700" : "$borderLight200"}
-            >
-              <HStack space="sm" alignItems="flex-end">
-                <Box flex={1}>
-                  <Textarea
-                    size="lg"
-                    isDisabled={sendMessage.isPending || isWaitingForResponse || (remainingReplies === 0 && isFreePlan)}
-                    h="auto"
-                    minHeight="$12"
-                    maxHeight="$32"
-                    bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
-                    borderColor={isDark ? "$borderDark700" : "$borderLight200"}
-                  >
-                    <TextareaInput
-                      placeholder={
-                        remainingReplies === 0 && isFreePlan
-                          ? "Upgrade to Pro to continue chatting..."
-                          : "Type your message..."
-                      }
-                      value={inputText}
-                      onChangeText={setInputText}
-                      maxLength={4000}
-                      placeholderTextColor={isDark ? "$textDark500" : "$textLight400"}
-                      accessibilityLabel="Message input"
-                      accessibilityHint="Type your message to chat with AI about your idea"
-                    />
-                  </Textarea>
-                </Box>
+            {/* Enhanced Input Area */}
+            <Box px="$5" pt="$4" pb={insets.bottom + 20}>
+              <GlassCard p="$4" opacity={0.1}>
+                <HStack space="md" alignItems="flex-end">
+                  <Box flex={1}>
+                    <Textarea
+                      size="lg"
+                      isDisabled={sendMessage.isPending || isWaitingForResponse || (remainingReplies === 0 && isFreePlan)}
+                      h="auto"
+                      minHeight="$14"
+                      maxHeight="$40"
+                      bg={isDark ? "rgba(255,255,255,0.08)" : "$white"}
+                      borderColor={isDark ? "rgba(139,92,246,0.3)" : "rgba(139,92,246,0.2)"}
+                      borderWidth={2}
+                      borderRadius="$2xl"
+                      sx={{
+                        ':focus': {
+                          borderColor: '$primary500',
+                          shadowColor: '$primary500',
+                          shadowOffset: { width: 0, height: 0 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 8,
+                        }
+                      }}
+                    >
+                      <TextareaInput
+                        placeholder={
+                          remainingReplies === 0 && isFreePlan
+                            ? "Upgrade to Pro to continue chatting..."
+                            : "Type your message..."
+                        }
+                        value={inputText}
+                        onChangeText={setInputText}
+                        maxLength={4000}
+                        placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                        fontSize="$md"
+                        lineHeight="$lg"
+                        accessibilityLabel="Message input"
+                        accessibilityHint="Type your message to chat with AI about your idea"
+                      />
+                    </Textarea>
+                  </Box>
 
-                <Button
-                  size="lg"
-                  borderRadius="$full"
-                  variant="solid"
-                  action="primary"
-                  isDisabled={
-                    !inputText.trim() ||
-                    sendMessage.isPending ||
-                    isWaitingForResponse ||
-                    (remainingReplies === 0 && isFreePlan)
-                  }
-                  onPress={handleSend}
-                  accessibilityRole="button"
-                  accessibilityLabel="Send message"
-                  accessibilityHint="Double tap to send your message to AI"
-                >
-                  {(sendMessage.isPending || isWaitingForResponse) ? (
-                    <Spinner size="small" color="$white" />
-                  ) : (
-                    <ButtonIcon as={Send} />
-                  )}
-                </Button>
-              </HStack>
+                  <Pressable
+                    onPress={handleSend}
+                    disabled={
+                      !inputText.trim() ||
+                      sendMessage.isPending ||
+                      isWaitingForResponse ||
+                      (remainingReplies === 0 && isFreePlan)
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel="Send message"
+                    accessibilityHint="Double tap to send your message to AI"
+                  >
+                    <Box
+                      bg={
+                        (!inputText.trim() || sendMessage.isPending || isWaitingForResponse || (remainingReplies === 0 && isFreePlan))
+                          ? "$coolGray400"
+                          : "$primary600"
+                      }
+                      w="$14"
+                      h="$14"
+                      borderRadius="$full"
+                      justifyContent="center"
+                      alignItems="center"
+                      shadowColor="$primary600"
+                      shadowOffset={{ width: 0, height: 4 }}
+                      shadowOpacity={0.4}
+                      shadowRadius={8}
+                      sx={{
+                        ':active': {
+                          transform: [{ scale: 0.95 }]
+                        }
+                      }}
+                    >
+                      {(sendMessage.isPending || isWaitingForResponse) ? (
+                        <Spinner size="small" color="$white" />
+                      ) : (
+                        <Icon as={Send} size="lg" color="$white" />
+                      )}
+                    </Box>
+                  </Pressable>
+                </HStack>
+              </GlassCard>
             </Box>
           </Box>
         </KeyboardAvoidingView>
+      </GradientBackground>
     </Box>
   );
 }

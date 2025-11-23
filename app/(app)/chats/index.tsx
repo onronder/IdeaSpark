@@ -12,7 +12,6 @@ import {
   Icon,
   Center,
   Spinner,
-  Card,
 } from "@gluestack-ui/themed";
 import {
   MessageCircle,
@@ -20,22 +19,24 @@ import {
   ChevronRight,
   Sparkles,
   Plus,
+  Crown,
+  Clock,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useIdeas } from '@/hooks/useApi';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { EmptyState } from '@/components/ui';
+import { GradientBackground, GlassCard, AnimatedOrb } from '@/components/ui';
 
-// Map category to emoji
-const CATEGORY_EMOJI: Record<string, string> = {
-  BUSINESS: '💼',
-  TECHNOLOGY: '💻',
-  HEALTH: '🏥',
-  EDUCATION: '📚',
-  ENTERTAINMENT: '🎮',
-  OTHER: '🔮',
+// Map category to emoji and color
+const CATEGORY_CONFIG: Record<string, { emoji: string; color: string }> = {
+  BUSINESS: { emoji: '💼', color: '#8B5CF6' },
+  TECHNOLOGY: { emoji: '💻', color: '#3B82F6' },
+  HEALTH: { emoji: '🏥', color: '#10B981' },
+  EDUCATION: { emoji: '📚', color: '#F59E0B' },
+  ENTERTAINMENT: { emoji: '🎮', color: '#EC4899' },
+  OTHER: { emoji: '🔮', color: '#6366F1' },
 };
 
 export default function ChatListScreen() {
@@ -57,13 +58,15 @@ export default function ChatListScreen() {
 
   if (isLoading) {
     return (
-      <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
-        <Center flex={1}>
-          <Spinner size="large" color="$primary500" />
-          <Text mt="$6" color={isDark ? "$textDark300" : "$textLight700"} size="lg">
-            Loading conversations...
-          </Text>
-        </Center>
+      <Box flex={1}>
+        <GradientBackground>
+          <Center flex={1}>
+            <AnimatedOrb size={100} icon="sparkles" />
+            <Text mt="$8" color={isDark ? "$white" : "$textLight500"} size="xl" fontWeight="$semibold">
+              Loading conversations...
+            </Text>
+          </Center>
+        </GradientBackground>
       </Box>
     );
   }
@@ -73,159 +76,246 @@ export default function ChatListScreen() {
   ) || [];
 
   return (
-    <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
-      {/* Header */}
-      <Box pt={insets.top + 20} pb="$6" px="$4">
-        <HStack justifyContent="space-between" alignItems="center">
-          <Heading size="2xl" color={isDark ? "$textDark50" : "$textLight900"}>
-            Conversations
-          </Heading>
-          {user?.subscriptionPlan === 'PRO' && (
-            <Badge action="success" variant="solid" size="sm">
-              <BadgeText>Pro</BadgeText>
-            </Badge>
-          )}
-        </HStack>
-      </Box>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
-        }
-      >
-        <VStack space="md" px="$4" pb="$6">
-          {/* Empty State */}
-          {sortedIdeas.length === 0 && (
-            <Box py="$20">
-              <EmptyState
-                icon={<Icon as={Lightbulb} size="xl" color={isDark ? "$textDark300" : "$textLight600"} />}
-                title="No conversations yet"
-                description="Start your first idea refinement session to begin chatting with AI"
-                action={{
-                  label: "Create Your First Idea",
-                  onPress: handleCreateNew,
-                }}
-              />
-            </Box>
-          )}
-
-          {/* Conversation List */}
-          {sortedIdeas.map((idea) => {
-            const categoryEmoji = CATEGORY_EMOJI[idea.category] || '💡';
-            const messageCount = idea.messageCount || 0;
-            const lastUpdated = new Date(idea.updatedAt);
-            const now = new Date();
-            const diffMs = now.getTime() - lastUpdated.getTime();
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-
-            let timeAgo = '';
-            if (diffMins < 1) timeAgo = 'Just now';
-            else if (diffMins < 60) timeAgo = `${diffMins}m ago`;
-            else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
-            else if (diffDays < 7) timeAgo = `${diffDays}d ago`;
-            else timeAgo = lastUpdated.toLocaleDateString();
-
-            return (
-              <Pressable
-                key={idea.id}
-                onPress={() => handleIdeaPress(idea.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Open chat for ${idea.title}`}
-                accessibilityHint="Double tap to open conversation"
+    <Box flex={1}>
+      <GradientBackground>
+        {/* Enhanced Header */}
+        <Box pt={insets.top + 24} pb="$8" px="$5">
+          <HStack justifyContent="space-between" alignItems="center" mb="$4">
+            <HStack space="md" alignItems="center">
+              <AnimatedOrb size={60} icon="sparkles" />
+              <Heading size="3xl" color={isDark ? "$white" : "$textLight900"} lineHeight="$3xl">
+                Conversations
+              </Heading>
+            </HStack>
+            {user?.subscriptionPlan === 'PRO' && (
+              <Box
+                bg="linear-gradient(135deg, #10B981 0%, #059669 100%)"
+                px="$3"
+                py="$1.5"
+                borderRadius="$full"
+                shadowColor="$success600"
+                shadowOffset={{ width: 0, height: 4 }}
+                shadowOpacity={0.3}
+                shadowRadius={8}
               >
-                <Card
-                  p="$4"
-                  variant="elevated"
-                  bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
-                  borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+                <HStack space="xs" alignItems="center">
+                  <Icon as={Crown} size="xs" color="$white" />
+                  <Text color="$white" fontWeight="$bold" fontSize="$xs">Pro</Text>
+                </HStack>
+              </Box>
+            )}
+          </HStack>
+
+          <Text size="md" color={isDark ? "$textDark300" : "$textLight600"} lineHeight="$md">
+            {sortedIdeas.length === 0 
+              ? "Start your first idea refinement session"
+              : `${sortedIdeas.length} active idea${sortedIdeas.length !== 1 ? 's' : ''}`
+            }
+          </Text>
+        </Box>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          }
+        >
+          <VStack space="lg" px="$5" pb="$8">
+            {/* Empty State */}
+            {sortedIdeas.length === 0 && (
+              <Center py="$16">
+                <Box mb="$8">
+                  <AnimatedOrb size={120} icon="lightbulb" />
+                </Box>
+                <Heading size="2xl" color={isDark ? "$white" : "$textLight900"} mb="$4" textAlign="center" lineHeight="$2xl">
+                  No Conversations Yet
+                </Heading>
+                <Text size="lg" color={isDark ? "$textDark300" : "$textLight600"} textAlign="center" mb="$10" px="$8" lineHeight="$lg">
+                  Start your first idea refinement session to begin chatting with AI
+                </Text>
+                <Pressable
+                  onPress={handleCreateNew}
+                  accessibilityRole="button"
+                  accessibilityLabel="Create your first idea"
+                >
+                  <Box
+                    bg="$primary600"
+                    px="$8"
+                    py="$4"
+                    borderRadius="$2xl"
+                    shadowColor="$primary600"
+                    shadowOffset={{ width: 0, height: 8 }}
+                    shadowOpacity={0.4}
+                    shadowRadius={16}
+                    sx={{
+                      ':active': {
+                        transform: [{ scale: 0.98 }]
+                      }
+                    }}
+                  >
+                    <HStack space="sm" alignItems="center">
+                      <Icon as={Plus} size="lg" color="$white" />
+                      <Text color="$white" fontWeight="$bold" size="lg">
+                        Create Your First Idea
+                      </Text>
+                    </HStack>
+                  </Box>
+                </Pressable>
+              </Center>
+            )}
+
+            {/* Enhanced Conversation List */}
+            {sortedIdeas.map((idea) => {
+              const categoryConfig = CATEGORY_CONFIG[idea.category] || { emoji: '💡', color: '#6366F1' };
+              const messageCount = idea.messageCount || 0;
+              const lastUpdated = new Date(idea.updatedAt);
+              const now = new Date();
+              const diffMs = now.getTime() - lastUpdated.getTime();
+              const diffMins = Math.floor(diffMs / 60000);
+              const diffHours = Math.floor(diffMs / 3600000);
+              const diffDays = Math.floor(diffMs / 86400000);
+
+              let timeAgo = '';
+              if (diffMins < 1) timeAgo = 'Just now';
+              else if (diffMins < 60) timeAgo = `${diffMins}m ago`;
+              else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
+              else if (diffDays < 7) timeAgo = `${diffDays}d ago`;
+              else timeAgo = lastUpdated.toLocaleDateString();
+
+              return (
+                <Pressable
+                  key={idea.id}
+                  onPress={() => handleIdeaPress(idea.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open chat for ${idea.title}`}
+                  accessibilityHint="Double tap to open conversation"
+                >
+                  <GlassCard 
+                    p="$5"
+                    opacity={0.08}
+                    sx={{
+                      ':active': {
+                        transform: [{ scale: 0.98 }]
+                      }
+                    }}
+                  >
+                    <HStack
+                      space="md"
+                      alignItems="center"
+                      justifyContent="space-between"
+                    >
+                      <HStack space="md" flex={1} alignItems="center">
+                        {/* Enhanced Category Icon */}
+                        <Box
+                          bg={`${categoryConfig.color}20`}
+                          p="$4"
+                          borderRadius="$2xl"
+                          alignItems="center"
+                          justifyContent="center"
+                          minWidth="$16"
+                          minHeight="$16"
+                          borderWidth={2}
+                          borderColor={`${categoryConfig.color}40`}
+                        >
+                          <Text fontSize="$2xl">{categoryConfig.emoji}</Text>
+                        </Box>
+
+                        {/* Idea Details */}
+                        <VStack flex={1} space="sm">
+                          <Text
+                            fontWeight="$bold"
+                            color={isDark ? "$white" : "$textLight900"}
+                            size="lg"
+                            numberOfLines={1}
+                            lineHeight="$lg"
+                          >
+                            {idea.title}
+                          </Text>
+                          <Text
+                            size="md"
+                            color={isDark ? "$textDark300" : "$textLight600"}
+                            numberOfLines={2}
+                            lineHeight="$md"
+                          >
+                            {idea.description}
+                          </Text>
+                          <HStack space="md" alignItems="center" mt="$1">
+                            <HStack space="xs" alignItems="center">
+                              <Icon as={MessageCircle} size="xs" color={isDark ? "$textDark400" : "$textLight500"} />
+                              <Text size="sm" color={isDark ? "$textDark400" : "$textLight500"} fontWeight="$medium">
+                                {messageCount} message{messageCount !== 1 ? 's' : ''}
+                              </Text>
+                            </HStack>
+                            <HStack space="xs" alignItems="center">
+                              <Icon as={Clock} size="xs" color={isDark ? "$textDark400" : "$textLight500"} />
+                              <Text size="sm" color={isDark ? "$textDark400" : "$textLight500"}>
+                                {timeAgo}
+                              </Text>
+                            </HStack>
+                          </HStack>
+                        </VStack>
+                      </HStack>
+
+                      {/* Enhanced Chevron */}
+                      <Box
+                        bg={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)"}
+                        p="$2"
+                        borderRadius="$full"
+                      >
+                        <Icon as={ChevronRight} size="lg" color={isDark ? "$textDark300" : "$textLight400"} />
+                      </Box>
+                    </HStack>
+                  </GlassCard>
+                </Pressable>
+              );
+            })}
+
+            {/* Enhanced Create New Idea CTA at bottom */}
+            {sortedIdeas.length > 0 && (
+              <Pressable
+                onPress={handleCreateNew}
+                mt="$4"
+                accessibilityRole="button"
+                accessibilityLabel="Create new idea"
+                accessibilityHint="Double tap to start a new idea session"
+              >
+                <GlassCard 
+                  p="$5" 
+                  bg={isDark ? "rgba(139,92,246,0.15)" : "rgba(139,92,246,0.08)"}
+                  borderWidth={2}
+                  borderColor="$primary500"
+                  sx={{
+                    ':active': {
+                      transform: [{ scale: 0.98 }]
+                    }
+                  }}
                 >
                   <HStack
                     space="md"
                     alignItems="center"
-                    justifyContent="space-between"
+                    justifyContent="center"
                   >
-                    <HStack space="md" flex={1} alignItems="center">
-                      {/* Category Emoji (no circular background) */}
-                      <Text fontSize="$2xl">{categoryEmoji}</Text>
-
-                      {/* Idea Details */}
-                      <VStack flex={1} space="xs">
-                        <Text
-                          fontWeight="$bold"
-                          color={isDark ? "$textDark50" : "$textLight900"}
-                          size="md"
-                          numberOfLines={1}
-                        >
-                          {idea.title}
-                        </Text>
-                        <Text
-                          size="sm"
-                          color={isDark ? "$textDark300" : "$textLight700"}
-                          numberOfLines={2}
-                        >
-                          {idea.description}
-                        </Text>
-                        <HStack space="sm" alignItems="center" mt="$1">
-                          <Badge
-                            action="secondary"
-                            variant="outline"
-                            size="sm"
-                          >
-                            <BadgeText>{messageCount} messages</BadgeText>
-                          </Badge>
-                          <Text size="xs" color={isDark ? "$textDark500" : "$textLight400"}>
-                            {timeAgo}
-                          </Text>
-                        </HStack>
-                      </VStack>
-                    </HStack>
-
-                    {/* Chevron */}
-                    <Icon as={ChevronRight} size="lg" color={isDark ? "$textDark400" : "$textLight400"} />
+                    <Box
+                      bg="$primary600"
+                      p="$2"
+                      borderRadius="$full"
+                    >
+                      <Icon as={Plus} size="lg" color="$white" />
+                    </Box>
+                    <Text
+                      fontWeight="$bold"
+                      color="$primary600"
+                      size="lg"
+                    >
+                      Start a New Idea Session
+                    </Text>
                   </HStack>
-                </Card>
+                </GlassCard>
               </Pressable>
-            );
-          })}
-
-          {/* Create New Idea CTA at bottom */}
-          {sortedIdeas.length > 0 && (
-            <Pressable
-              onPress={handleCreateNew}
-              mt="$4"
-              accessibilityRole="button"
-              accessibilityLabel="Create new idea"
-              accessibilityHint="Double tap to start a new idea session"
-            >
-              <Card
-                p="$4"
-                variant="elevated"
-                bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
-                borderColor="$primary500"
-                borderWidth={1}
-              >
-                <HStack
-                  space="md"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Icon as={Plus} size="md" color="$primary500" />
-                  <Text
-                    fontWeight="$bold"
-                    color="$primary500"
-                    size="md"
-                  >
-                    Start a New Idea Session
-                  </Text>
-                </HStack>
-              </Card>
-            </Pressable>
-          )}
-        </VStack>
-      </ScrollView>
+            )}
+          </VStack>
+        </ScrollView>
+      </GradientBackground>
     </Box>
   );
 }
