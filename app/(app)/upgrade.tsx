@@ -52,7 +52,6 @@ import { useToast } from '@/contexts/ToastContext';
 import { iapService, IAPError, IAPErrorType } from '@/services/iapService';
 import { getProductId, PRICING_DISPLAY, SUBSCRIPTION_TIERS } from '@/config/iapConfig';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { GradientBackground, GlassCard, AnimatedOrb } from '@/components/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function UpgradeScreen() {
@@ -260,25 +259,29 @@ export default function UpgradeScreen() {
   // If user already has Pro, show manage subscription screen
   if (subscriptionStatus?.isActive) {
     return (
-      <Box flex={1}>
-        <GradientBackground>
-          <Box px="$4" pt={insets.top + 20} pb="$6">
-            <Center>
-              <AnimatedOrb size={100} icon="sparkles" />
-              <Heading size="xl" mb="$2" mt="$6" color={isDark ? "$white" : "$textLight900"}>You're a Pro Member!</Heading>
-              <Text color={isDark ? "$textDark400" : "$textLight600"} textAlign="center" px="$4">
-                You have full access to all premium features
-              </Text>
-            </Center>
-          </Box>
+      <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
+        <Box px="$4" pt={insets.top + 20} pb="$6">
+          <Center>
+            <Icon as={Crown} size="xl" color="$success600" />
+            <Heading size="xl" mb="$2" mt="$6" color={isDark ? "$textDark50" : "$textLight900"}>You're a Pro Member!</Heading>
+            <Text color={isDark ? "$textDark300" : "$textLight700"} textAlign="center" px="$4">
+              You have full access to all premium features
+            </Text>
+          </Center>
+        </Box>
 
-          <ScrollView flex={1} px="$4" pb="$6" showsVerticalScrollIndicator={false}>
-            <VStack space="lg">
-              <GlassCard p="$6" opacity={0.08}>
+        <ScrollView flex={1} px="$4" pb="$6" showsVerticalScrollIndicator={false}>
+          <VStack space="lg">
+            <Card
+              p="$6"
+              variant="elevated"
+              bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+              borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+            >
                 <VStack space="md">
                   <HStack space="sm" alignItems="center">
                     <Icon as={ShieldCheck} size="md" color="$success600" />
-                    <Text fontWeight="$semibold" size="lg" color={isDark ? "$white" : "$textLight900"}>Active Subscription</Text>
+                    <Text fontWeight="$semibold" size="lg" color={isDark ? "$textDark50" : "$textLight900"}>Active Subscription</Text>
                   </HStack>
 
                   {subscriptionStatus.billingPeriod && (
@@ -303,11 +306,16 @@ export default function UpgradeScreen() {
                     <ButtonText>Manage Subscription</ButtonText>
                   </Button>
                 </VStack>
-              </GlassCard>
+              </Card>
 
-              <GlassCard p="$6" opacity={0.08}>
+              <Card
+                p="$6"
+                variant="elevated"
+                bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+              >
                 <VStack space="md">
-                  <Heading size="md" color={isDark ? "$white" : "$textLight900"}>Your Pro Benefits</Heading>
+                  <Heading size="md" color={isDark ? "$textDark50" : "$textLight900"}>Your Pro Benefits</Heading>
                   {features.map((feature, index) => (
                     <HStack key={index} space="md" alignItems="center">
                       <Icon as={feature.icon} size="sm" color="$primary500" />
@@ -315,23 +323,21 @@ export default function UpgradeScreen() {
                     </HStack>
                   ))}
                 </VStack>
-              </GlassCard>
+              </Card>
             </VStack>
           </ScrollView>
-        </GradientBackground>
       </Box>
     );
   }
 
   return (
-    <Box flex={1}>
-      <GradientBackground>
-        {/* Header */}
-        <Box px="$4" pt={insets.top + 20} pb="$6">
-          <Center>
-            <AnimatedOrb size={100} icon="sparkles" />
-            <Heading size="xl" mb="$2" mt="$6" color={isDark ? "$white" : "$textLight900"}>Unlock Premium Features</Heading>
-            <Text color={isDark ? "$textDark400" : "$textLight600"} textAlign="center" px="$4">
+    <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
+      {/* Header */}
+      <Box px="$4" pt={insets.top + 20} pb="$6">
+        <Center>
+          <Icon as={Crown} size="xl" color="$primary500" />
+            <Heading size="xl" mb="$2" mt="$6" color={isDark ? "$textDark50" : "$textLight900"}>Unlock Premium Features</Heading>
+            <Text color={isDark ? "$textDark300" : "$textLight700"} textAlign="center" px="$4">
               Choose your plan and start creating unlimited ideas
             </Text>
           </Center>
@@ -345,30 +351,32 @@ export default function UpgradeScreen() {
                 onPress={() => setSelectedPlan('MONTHLY')}
                 flex={1}
               >
-                <GlassCard
+                <Card
                   p="$4"
-                  opacity={selectedPlan === 'MONTHLY' ? 0.15 : 0.08}
-                  borderColor={selectedPlan === 'MONTHLY' ? '$primary500' : (isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.5)")}
+                  variant="elevated"
+                  bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                  borderColor={selectedPlan === 'MONTHLY' ? '$primary500' : (isDark ? "$borderDark700" : "$borderLight200")}
                   borderWidth={selectedPlan === 'MONTHLY' ? 2 : 1}
                 >
                   <VStack alignItems="center">
-                    <Text fontWeight="$semibold" size="md" color={isDark ? "$white" : "$textLight900"}>Monthly</Text>
+                    <Text fontWeight="$semibold" size="md" color={isDark ? "$textDark50" : "$textLight900"}>Monthly</Text>
                     <Text size="xl" fontWeight="$bold" color="$primary600">
                       {getProductPrice('MONTHLY').split('/')[0]}
                     </Text>
                     <Text size="sm" color={isDark ? "$textDark400" : "$textLight600"}>/month</Text>
                   </VStack>
-                </GlassCard>
+                </Card>
               </Pressable>
 
               <Pressable
                 onPress={() => setSelectedPlan('YEARLY')}
                 flex={1}
               >
-                <GlassCard
+                <Card
                   p="$4"
-                  opacity={selectedPlan === 'YEARLY' ? 0.15 : 0.08}
-                  borderColor={selectedPlan === 'YEARLY' ? '$primary500' : (isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.5)")}
+                  variant="elevated"
+                  bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                  borderColor={selectedPlan === 'YEARLY' ? '$primary500' : (isDark ? "$borderDark700" : "$borderLight200")}
                   borderWidth={selectedPlan === 'YEARLY' ? 2 : 1}
                 >
                   <Badge
@@ -382,13 +390,13 @@ export default function UpgradeScreen() {
                     <BadgeText>Save 17%</BadgeText>
                   </Badge>
                   <VStack alignItems="center">
-                    <Text fontWeight="$semibold" size="md" color={isDark ? "$white" : "$textLight900"}>Yearly</Text>
+                    <Text fontWeight="$semibold" size="md" color={isDark ? "$textDark50" : "$textLight900"}>Yearly</Text>
                     <Text size="xl" fontWeight="$bold" color="$primary600">
                       {getProductPrice('YEARLY').split('/')[0]}
                     </Text>
                     <Text size="sm" color={isDark ? "$textDark400" : "$textLight600"}>/year</Text>
                   </VStack>
-                </GlassCard>
+                </Card>
               </Pressable>
             </HStack>
 
@@ -430,20 +438,31 @@ export default function UpgradeScreen() {
             </Button>
 
               {/* Security Note */}
-              <GlassCard p="$3" opacity={0.1} bg={isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.1)"}>
+              <Card
+                p="$3"
+                variant="elevated"
+                bg={isDark ? "$backgroundDark900" : "$info50"}
+                borderColor="$info500"
+                borderWidth={1}
+              >
                 <HStack space="sm" alignItems="center">
                   <Icon as={ShieldCheck} size="sm" color="$info500" />
-                  <Text size="sm" color={isDark ? "$white" : "$textLight900"} flex={1}>
+                  <Text size="sm" color={isDark ? "$textDark50" : "$textLight900"} flex={1}>
                     Secure payment through {Platform.OS === 'ios' ? 'Apple App Store' : 'Google Play Store'}
                   </Text>
                 </HStack>
-              </GlassCard>
+              </Card>
             </VStack>
 
             {/* Features List */}
-            <GlassCard p="$6" opacity={0.08}>
+            <Card
+              p="$6"
+              variant="elevated"
+              bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+              borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+            >
               <VStack space="md">
-                <Heading size="md" color={isDark ? "$white" : "$textLight900"}>What's Included in Pro</Heading>
+                <Heading size="md" color={isDark ? "$textDark50" : "$textLight900"}>What's Included in Pro</Heading>
                 {features.map((feature, index) => (
                   <HStack key={index} space="md" alignItems="center">
                     <Icon as={feature.icon} size="sm" color="$primary500" />
@@ -451,19 +470,24 @@ export default function UpgradeScreen() {
                   </HStack>
                 ))}
               </VStack>
-            </GlassCard>
+            </Card>
 
             {/* Comparison Table */}
             <VStack space="md">
-              <Heading size="lg" textAlign="center" color={isDark ? "$white" : "$textLight900"}>Free vs Pro</Heading>
+              <Heading size="lg" textAlign="center" color={isDark ? "$textDark50" : "$textLight900"}>Free vs Pro</Heading>
 
-              <GlassCard p="$0" opacity={0.08}>
+              <Card
+                p="$0"
+                variant="elevated"
+                bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+              >
                 {/* Table header */}
                 <HStack borderBottomWidth={1} borderBottomColor={isDark ? "rgba(255,255,255,0.1)" : "$borderLight200"}>
                   <Box flex={1} p="$4" />
                   <Box flex={1} p="$4">
                     <Center>
-                      <Text fontWeight="$bold" color={isDark ? "$white" : "$textLight700"}>Free</Text>
+                      <Text fontWeight="$bold" color={isDark ? "$textDark50" : "$textLight700"}>Free</Text>
                     </Center>
                   </Box>
                   <Box flex={1} p="$4">
@@ -481,7 +505,7 @@ export default function UpgradeScreen() {
                   <HStack
                     key={index}
                     borderBottomWidth={index < comparisonData.length - 1 ? 1 : 0}
-                    borderBottomColor={isDark ? "rgba(255,255,255,0.05)" : "$borderLight100"}
+                    borderBottomColor={isDark ? "$borderDark700" : "$borderLight100"}
                   >
                     <Box flex={1} p="$4" justifyContent="center">
                       <Text color={isDark ? "$textDark300" : "$textLight700"}>{item.feature}</Text>
@@ -495,7 +519,7 @@ export default function UpgradeScreen() {
                             color={item.free ? "$success500" : "$error500"}
                           />
                         ) : (
-                          <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight700"}>{item.free}</Text>
+                          <Text fontWeight="$medium" color={isDark ? "$textDark50" : "$textLight700"}>{item.free}</Text>
                         )}
                       </Center>
                     </Box>
@@ -514,14 +538,19 @@ export default function UpgradeScreen() {
                     </Box>
                   </HStack>
                 ))}
-              </GlassCard>
+              </Card>
             </VStack>
 
             {/* FAQ Accordion */}
             <VStack space="md">
-              <Heading size="lg" textAlign="center" color={isDark ? "$white" : "$textLight900"}>Frequently Asked Questions</Heading>
+              <Heading size="lg" textAlign="center" color={isDark ? "$textDark50" : "$textLight900"}>Frequently Asked Questions</Heading>
 
-              <GlassCard p="$0" opacity={0.08}>
+              <Card
+                p="$0"
+                variant="elevated"
+                bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+              >
                 <Accordion
                   size="md"
                   variant="unfilled"
@@ -532,8 +561,8 @@ export default function UpgradeScreen() {
                     <AccordionItem key={index} value={`item-${index}`}>
                       <AccordionHeader>
                         <AccordionTrigger>
-                          <AccordionTitleText color={isDark ? "$white" : "$textLight900"}>{faq.question}</AccordionTitleText>
-                          <AccordionIcon as={ChevronDown} ml="$3" color={isDark ? "$textDark400" : "$textLight500"} />
+                          <AccordionTitleText color={isDark ? "$textDark50" : "$textLight900"}>{faq.question}</AccordionTitleText>
+                          <AccordionIcon as={ChevronDown} ml="$3" color={isDark ? "$textDark400" : "$textLight600"} />
                         </AccordionTrigger>
                       </AccordionHeader>
                       <AccordionContent>
@@ -544,15 +573,21 @@ export default function UpgradeScreen() {
                     </AccordionItem>
                   ))}
                 </Accordion>
-              </GlassCard>
+              </Card>
             </VStack>
           </VStack>
         </ScrollView>
 
         {/* Bottom CTA */}
-        <Box px="$4" pt="$4" pb={insets.bottom + 16}>
-          <GlassCard p="$4" opacity={0.08}>
-            <VStack space="sm">
+        <Box
+          px="$4"
+          pt="$4"
+          pb={insets.bottom + 16}
+          bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}
+          borderTopWidth={1}
+          borderTopColor={isDark ? "$borderDark700" : "$borderLight200"}
+        >
+          <VStack space="sm">
               <Button
                 size="lg"
                 variant="solid"
@@ -575,9 +610,7 @@ export default function UpgradeScreen() {
                 </Center>
               </Pressable>
             </VStack>
-          </GlassCard>
         </Box>
-      </GradientBackground>
     </Box>
   );
 }

@@ -3,12 +3,15 @@ export interface Subscription {
   userId: string;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
-  stripeCustomerId: string | null;
-  stripeSubscriptionId: string | null;
-  stripePriceId: string | null;
-  currentPeriodStart: Date;
-  currentPeriodEnd: Date;
+  provider: SubscriptionProvider | null;
+  externalId: string | null;
+  startDate: Date | null;
+  endDate: Date | null;
+  currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
+  cancelledAt: Date | null;
+  renewedAt: Date | null;
+  metadata: Record<string, any> | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,8 +26,14 @@ export enum SubscriptionStatus {
   ACTIVE = 'ACTIVE',
   TRIALING = 'TRIALING',
   PAST_DUE = 'PAST_DUE',
-  CANCELED = 'CANCELED',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
   UNPAID = 'UNPAID',
+}
+
+export enum SubscriptionProvider {
+  APPLE = 'APPLE',
+  GOOGLE = 'GOOGLE',
 }
 
 export interface PlanLimits {
@@ -70,22 +79,3 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
     exportFormats: ['txt', 'pdf', 'md', 'docx', 'json'],
   },
 };
-
-export interface CreateCheckoutSessionDTO {
-  priceId: string;
-  successUrl?: string;
-  cancelUrl?: string;
-}
-
-export interface CheckoutSessionResponse {
-  checkoutUrl: string;
-  sessionId: string;
-}
-
-export interface CreatePortalSessionDTO {
-  returnUrl?: string;
-}
-
-export interface PortalSessionResponse {
-  portalUrl: string;
-}

@@ -222,7 +222,7 @@ class IAPService {
 
     try {
       // Send receipt to our backend for validation
-      const validationResponse = await api.post('/api/v1/subscriptions/validate-receipt', {
+      const validationResponse = await api.post('/subscriptions/validate-receipt', {
         platform: Platform.OS,
         productId,
         receipt: Platform.OS === 'ios' ? transactionReceipt : purchaseToken,
@@ -462,7 +462,7 @@ class IAPService {
       const subscriptionInfo = JSON.parse(savedSubscription);
 
       // Verify with backend
-      const response = await api.get('/api/v1/subscriptions/status');
+      const response = await api.get('/subscriptions/status');
 
       if (response.data.success) {
         const { subscription } = response.data.data;

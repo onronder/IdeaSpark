@@ -8,7 +8,7 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
    - Run `npm install` in repo root and ensure Expo SDK 54 CLI tools are available.
    - Execute `npm run start` once to confirm Metro bundles and the current screens load.
 2. **Shared Configuration**
-   - Create `.env.example` with keys: `API_URL`, `OPENAI_API_KEY`, `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET`, `SENTRY_DSN`.
+   - Create `.env.example` with keys aligned to the current stack: frontend (`EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_APP_VERSION`) and backend (`API_URL`, `DATABASE_URL` for Supabase, `REDIS_URL`, `SUPABASE_JWT_SECRET`, `OPENAI_API_KEY`, `SENTRY_DSN`, `APPLE_SHARED_SECRET`, `GOOGLE_SERVICE_ACCOUNT_KEY`).
    - Add `.env` loading in Expo (`app.config.js` or `expo-env.d.ts`) and backend (using `dotenv` in `server` entry point).
 3. **Code Quality & Automation**
    - Configure ESLint for monorepo (root config referencing Expo + Node rules) and ensure `npm run lint` covers both workspaces.
@@ -30,7 +30,7 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
    - Run `npx expo run:ios` and `npx expo run:android` (simulators) to ensure native projects generate cleanly before deeper work begins.
    - Document any platform-specific quirks discovered so later phases can account for them.
 
-## Phase 1 – Backend Foundations (Offline/Hybrid)
+## Phase 1 – Backend Foundations (Railway + Supabase)
 
 1. **Scaffold Server Project**
    - Create `/server` with `package.json`, TypeScript config, `src/index.ts` bootstrapping Express.
@@ -49,16 +49,12 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
    - Implement `src/config.ts` reading environment variables with validation (zod).
    - Add global middlewares: security headers (helmet), CORS config (allow Expo dev host), JSON body parser with size limit, request logging (pino).
    - Create central `errorHandler` returning normalized JSON error responses.
-5. **Auth & Session Endpoints**
-   - Build services for hashing passwords, issuing access/refresh tokens, persisting refresh tokens with device fingerprint.
-   - Endpoints:
-     - `POST /auth/register` (email verification pending → return tokens immediately for MVP).
-     - `POST /auth/login`.
-     - `POST /auth/logout` (invalidate refresh token).
-     - `POST /auth/refresh`.
-     - `POST /auth/forgot-password` (generate token, send email via stub provider).
-     - `POST /auth/reset-password`.
-   - Implement `GET /me` returning profile + plan tier.
+5. **Auth & Session Integration (Supabase)**
+   - Use Supabase Auth (`auth.users`) as the sole identity provider; do not implement custom email/password endpoints in Node.
+   - Implement middleware that validates Supabase JWTs using `SUPABASE_JWT_SECRET` and loads the corresponding `public.users` record into `req.user`, including subscription data.
+   - Expose minimal auth-related API surface on the backend:
+     - `GET /api/v1/auth/me` returning profile + plan tier for the authenticated Supabase user.
+     - Additional profile/usage/subscription endpoints that assume a valid Supabase bearer token but never handle passwords directly.
 6. **Idea + Message APIs (stubbed AI)**
    - `POST /ideas`: create session with initial prompt, enforce one active idea for free tier.
    - `GET /ideas/:id/messages`: list conversation history sorted by creation date.
@@ -72,25 +68,25 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
    - Integrate Sentry (or chosen provider) in Express app to capture unhandled exceptions and rejected promises; ensure DSN configurable per environment.
    - Create middleware for structured error responses that also log stack traces while redacting sensitive data.
 9. **Testing & CI/CD Focus**
-   - Write Jest/Supertest suites for auth endpoints (register/login/logout/refresh) and idea routes (create idea, list messages, stub reply) with mocked DB via Prisma test client.
+   - Write Jest/Supertest suites for the `authenticate` middleware, `/api/v1/auth/me`, and idea routes (create idea, list messages, stub reply) with mocked DB via Prisma test client.
    - Add unit tests for `config`, `errorHandler`, logging utilities, and token services to guarantee coverage of failure paths.
    - Update CI workflow to spin up Postgres via services for backend test job; run `prisma migrate deploy` before tests.
 
 ## Phase 2 – Frontend Auth & State Wiring
 
 1. **Auth Context**
-   - Create `contexts/AuthContext.tsx` managing access/refresh tokens via `AsyncStorage`, exposing `signIn`, `signOut`, `refresh`, `bootstrap`.
-   - Update `_layout.tsx` to wrap Stack with `AuthProvider` + `GluestackUIProvider` (added later) and to show splash while `bootstrap` runs.
+   - Use `contexts/SupabaseAuthContext.tsx` to manage Supabase session state (`user`, `session`, loading) via the Supabase JS client, exposing `signInWithEmail`, `signUpWithEmail`, `signOut`, `refreshUser`.
+   - Ensure `app/_layout.tsx` wraps the navigation tree with `SupabaseAuthProvider` and shows a splash screen while the initial Supabase session is being resolved.
 2. **Route Guards**
    - Use Expo Router groups: `(auth)` for `/auth`, `(app)` for `/`, `/chat`, `/profile`, `/upgrade`. Redirect based on context state.
 3. **API Client**
-   - Create `lib/api.ts` (axios/fetch wrapper) that injects tokens and handles refresh on 401.
+   - Create `lib/api.ts` (axios/fetch wrapper) that injects the current Supabase access token into `Authorization: Bearer <token>` headers and handles 401s by clearing state/signing out gracefully rather than performing a custom refresh.
    - Define typed hooks (`useIdeas`, `useChat`, `useUsage`) leveraging SWR or React Query.
 4. **Screen Wiring**
-   - `app/auth.tsx`: replace console stubs with API calls, show server errors, handle forgot-password mode via backend.
-   - `app/index.tsx`: on submit, call `POST /ideas`, navigate to `/chat?id=...` on success, handle errors (quota reached -> show upgrade prompt).
-   - `app/chat.tsx`: fetch session messages via query param, poll or subscribe for updates, send messages via API, update local state from response payload.
-   - `app/profile.tsx`: fetch `/me` on mount, display plan tier, tie logout button to `signOut`.
+   - `app/(auth)/index.tsx`: wire login and signup flows directly to Supabase Auth (`supabase.auth.signInWithPassword`, `supabase.auth.signUp`), show server-side error messages returned from Supabase.
+   - `app/index.tsx` and `app/(app)/index.tsx`: on submit, call `POST /api/v1/ideas`, navigate into the relevant chat route on success, handle errors (quota reached -> show upgrade prompt).
+   - `app/(app)/chats/index.tsx` and `app/(app)/chats/[id].tsx`: fetch session list and messages, send messages via API, update local state from response payload.
+   - `app/(app)/profile.tsx`: fetch `/api/v1/users/me` on mount, display plan tier, and tie logout button to `signOut` from `SupabaseAuthContext`.
    - Ensure bottom nav buttons call `router.push('/chat')`, etc., rather than placeholders.
 5. **Routing & Domain Structure Cleanup**
    - Replace the current “flat app” file layout with Expo Router groups per domain: `app/(auth)/index.tsx`, `app/(app)/ideas/index.tsx`, `app/(app)/chat/index.tsx`, `app/(app)/profile/index.tsx`, `app/(app)/upgrade/index.tsx`, plus group-level `_layout.tsx` files for shared headers/tabs.
@@ -186,25 +182,30 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
 
 ## Phase 5 – Subscription & Monetization
 
-1. **Billing Stack**
-   - Decide on Stripe (Checkout + Customer Portal) for MVP web payments; for native IAP, plan follow-up work.
-   - Install Stripe SDK server-side and `stripe-react-native` if moving to in-app payments later.
-2. **Server Implementation**
-   - `POST /billing/checkout-session`: create session tied to authenticated user, return URL for frontend.
-   - `POST /billing/portal-session`: allow managing subscription.
-   - `POST /billing/webhook`: handle `checkout.session.completed`, `invoice.paid`, `customer.subscription.updated/deleted`. Update `Subscription` table accordingly.
-   - Store `stripeCustomerId` per user and sync plan tier + limits.
-3. **Frontend Upgrade Flow**
-   - In `app/upgrade.tsx`, call checkout endpoint, open returned URL using `WebBrowser.openBrowserAsync`, listen for success deep link.
-   - Show loading/progress states while session is being generated; handle errors gracefully.
-   - On success, refresh `/usage/summary` and `/me` to reflect new plan.
+1. **Billing Stack (Apple & Google IAP Only)**
+   - Use native in-app purchases for subscriptions: Apple App Store and Google Play Store managed via `react-native-iap`; do not integrate Stripe or web checkout for payments.
+   - Model subscriptions in the backend using the existing `Subscription` table, tying plan tier and limits to the latest validated IAP receipt rather than Stripe customer data.
+2. **Server Implementation – Receipt Validation**
+   - Implement `POST /api/v1/subscriptions/validate-receipt` to validate purchases:
+     - For iOS: verify receipts against Apple using `APPLE_SHARED_SECRET`.
+     - For Android: verify purchase tokens using `GOOGLE_SERVICE_ACCOUNT_KEY` and Play Store APIs.
+   - Implement webhooks or polling-style endpoints for:
+     - `POST /api/v1/subscriptions/webhooks/apple`
+     - `POST /api/v1/subscriptions/webhooks/google`
+     to receive subscription lifecycle events (renewals, cancellations, refunds) and update the `Subscription` table.
+   - Store platform-specific subscription identifiers (product IDs, transaction IDs) per user and sync plan tier + limits from these records.
+3. **Frontend Upgrade Flow (IAP)**
+   - In `app/(app)/upgrade.tsx`, use `react-native-iap` to:
+     - Load available subscription products for iOS and Android.
+     - Initiate purchase flows and handle success/failure callbacks.
+     - On successful purchase, send the receipt/token to `/api/v1/subscriptions/validate-receipt` and then refresh `/api/v1/ideas/usage` and `/api/v1/auth/me` to reflect the new plan.
 4. **Plan Enforcement**
    - Server: middleware to inject `req.plan` from Subscription, enforce per-endpoint limits (ideas per day, replies per idea).
    - Client: surface premium-only UI (e.g., unlimited label, faster response badge) when `plan === 'pro'`.
 5. **Error Logging & Auditing**
-   - Log every billing action (checkout session creation, webhook payload) with correlation IDs to trace customer issues; store summarized events in `BillingAudit` table.
-   - Capture Stripe webhook failures/exceptions in Sentry with payload metadata (excluding PII) for rapid triage.
-   - Provide admin UI or log query to inspect subscription changes when disputes occur.
+   - Log every billing action (IAP purchase attempt, receipt validation, webhook payload) with correlation IDs to trace customer issues; store summarized events in a `BillingAudit` table.
+   - Capture Apple/Google webhook failures and receipt validation errors in Sentry with payload metadata (excluding PII) for rapid triage.
+   - Provide admin UI or log query to inspect subscription and entitlement changes when disputes occur.
 6. **User Messaging – Billing & Upgrades**
    - Define consistent copy for upgrade funnel:
      - Success banner: `"You're Pro now! Enjoy unlimited AI replies and priority responses."`
@@ -214,9 +215,9 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
    - Implement inline hints on upgrade screen reminding users of remaining free replies and benefits.
    - Surface plan-change notifications via push/email templates referenced here for consistency.
 7. **Testing & CI/CD Focus**
-   - Write webhook handler tests using Stripe CLI fixtures to validate signature verification and subscription state transitions.
-   - Add e2e test (Cypress/Detox) that mocks successful upgrade flow and verifies plan change in UI.
-   - Configure CI to run Stripe webhook unit tests with secret env vars pulled from repository secrets.
+   - Write unit/integration tests for receipt validation and Apple/Google webhook handlers, including edge cases like expired, cancelled, and refunded subscriptions.
+   - Add e2e test (Cypress/Detox) that mocks successful IAP upgrade flow and verifies plan change in UI.
+   - Configure CI to run subscription validation tests with Apple/Google secrets provided via repository secrets.
 8. **iOS & Android Verification**
    - Run upgrade flows on both iOS and Android (using sandbox payment/testing flows) to ensure redirects/deep links return correctly.
    - Verify platform-specific purchase restore flows (e.g., Android back button from checkout) behave gracefully.
@@ -323,7 +324,7 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
    - Add manual approval for production deployment.
 4. **Monitoring & Logging**
    - Ship logs to CloudWatch or Logtail with structured fields (request id, user id, endpoint, latency).
-   - Configure metrics/alerts: CPU/memory, HTTP 5xx, latency, OpenAI error rate, Stripe webhook failures.
+   - Configure metrics/alerts: CPU/memory, HTTP 5xx, latency, OpenAI error rate, and IAP receipt validation/webhook failures.
    - Set budget alerts in AWS + OpenAI dashboard.
 5. **Security Hardening**
    - Enforce HTTPS via ACM cert, redirect HTTP.

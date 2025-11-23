@@ -15,7 +15,7 @@ export function useSubscriptionStatus() {
       const localStatus = await iapService.checkSubscriptionStatus();
 
       // Then verify with backend
-      const response = await api.get('/api/v1/subscriptions/status');
+      const response = await api.get('/subscriptions/status');
 
       return {
         ...response.data.data,
@@ -55,7 +55,7 @@ export function useSubscriptionHistory() {
   return useQuery({
     queryKey: ['subscription', 'history', user?.id],
     queryFn: async () => {
-      const response = await api.get('/api/v1/subscriptions/history');
+      const response = await api.get('/subscriptions/history');
       return response.data.data;
     },
     enabled: !!user,
@@ -70,7 +70,7 @@ export function useCancelSubscription() {
 
   return useMutation({
     mutationFn: async (subscriptionId: string) => {
-      const response = await api.post(`/api/v1/subscriptions/${subscriptionId}/cancel`);
+      const response = await api.post(`/subscriptions/${subscriptionId}/cancel`);
       return response.data.data;
     },
     onSuccess: async () => {

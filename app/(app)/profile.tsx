@@ -99,7 +99,7 @@ import {
   useUserStats,
 } from '@/hooks/useProfile';
 import { useUsageSummary } from '@/hooks/useApi';
-import { GradientBackground, GlassCard, AnimatedOrb } from '@/components/ui';
+import { StatCard } from '@/components/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
@@ -304,25 +304,27 @@ export default function ProfileScreen() {
 
   if (profileLoading) {
     return (
-      <Box flex={1}>
-        <GradientBackground>
-          <Center flex={1}>
-            <AnimatedOrb size={80} icon="sparkles" />
-            <Text mt="$6" color={isDark ? "$white" : "$textLight900"} size="lg">
-              Loading profile...
-            </Text>
-          </Center>
-        </GradientBackground>
+      <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
+        <Center flex={1}>
+          <Spinner size="large" color="$primary500" />
+          <Text mt="$6" color={isDark ? "$textDark300" : "$textLight700"} size="lg">
+            Loading profile...
+          </Text>
+        </Center>
       </Box>
     );
   }
 
   return (
-    <Box flex={1}>
-      <GradientBackground>
-        {/* Header with Glassmorphism */}
-        <Box px="$4" pt={insets.top + 20} pb="$6">
-          <GlassCard p="$6" opacity={0.08}>
+    <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
+      {/* Header */}
+      <Box px="$4" pt={insets.top + 20} pb="$6">
+        <Card
+          p="$6"
+          variant="elevated"
+          bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+          borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+        >
             <VStack space="md" alignItems="center">
               <Pressable onPress={handleAvatarUpload}>
                 <Box position="relative">
@@ -348,8 +350,8 @@ export default function ProfileScreen() {
               </Pressable>
 
               <VStack space="xs" alignItems="center">
-                <Heading size="lg" color={isDark ? "$white" : "$textLight900"}>{profile?.name || 'User'}</Heading>
-                <Text color={isDark ? "$textDark400" : "$textLight600"} size="sm">{profile?.email}</Text>
+                <Heading size="lg" color={isDark ? "$textDark50" : "$textLight900"}>{profile?.name || 'User'}</Heading>
+                <Text color={isDark ? "$textDark300" : "$textLight700"} size="sm">{profile?.email}</Text>
 
                 <HStack space="sm" alignItems="center" mt="$2">
                   {profile?.subscriptionPlan === 'PRO' ? (
@@ -382,7 +384,7 @@ export default function ProfileScreen() {
                 <ButtonText>Edit Profile</ButtonText>
               </Button>
             </VStack>
-          </GlassCard>
+          </Card>
         </Box>
 
         <ScrollView
@@ -394,16 +396,21 @@ export default function ProfileScreen() {
           <VStack space="lg" p="$4">
             {/* Statistics Card */}
             {stats && (
-              <GlassCard p="$4" opacity={0.08}>
+              <Card
+                p="$4"
+                variant="elevated"
+                bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+              >
                 <VStack space="md">
-                  <Heading size="sm" color={isDark ? "$white" : "$textLight900"}>Your Statistics</Heading>
+                  <Heading size="sm" color={isDark ? "$textDark50" : "$textLight900"}>Your Statistics</Heading>
                   <HStack space="md" flexWrap="wrap">
                     <VStack space="xs" minWidth="45%">
                       <HStack space="xs" alignItems="center">
                         <Icon as={Zap} size="xs" color="$primary500" />
                         <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>Total Ideas</Text>
                       </HStack>
-                      <Text size="lg" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>{stats.totalIdeas}</Text>
+                      <Text size="lg" fontWeight="$bold" color={isDark ? "$textDark50" : "$textLight900"}>{stats.totalIdeas}</Text>
                     </VStack>
 
                     <VStack space="xs" minWidth="45%">
@@ -411,7 +418,7 @@ export default function ProfileScreen() {
                         <Icon as={MessageSquare} size="xs" color="$info500" />
                         <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>Total Messages</Text>
                       </HStack>
-                      <Text size="lg" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>{stats.totalMessages}</Text>
+                      <Text size="lg" fontWeight="$bold" color={isDark ? "$textDark50" : "$textLight900"}>{stats.totalMessages}</Text>
                     </VStack>
 
                     <VStack space="xs" minWidth="45%">
@@ -419,7 +426,7 @@ export default function ProfileScreen() {
                         <Icon as={Activity} size="xs" color="$success500" />
                         <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>Active Ideas</Text>
                       </HStack>
-                      <Text size="lg" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>{stats.activeIdeas}</Text>
+                      <Text size="lg" fontWeight="$bold" color={isDark ? "$textDark50" : "$textLight900"}>{stats.activeIdeas}</Text>
                     </VStack>
 
                     <VStack space="xs" minWidth="45%">
@@ -427,73 +434,93 @@ export default function ProfileScreen() {
                         <Icon as={Calendar} size="xs" color="$secondary500" />
                         <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>Member Since</Text>
                       </HStack>
-                      <Text size="sm" fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>
+                      <Text size="sm" fontWeight="$semibold" color={isDark ? "$textDark50" : "$textLight900"}>
                         {formatMemberSince(stats.memberSince)}
                       </Text>
                     </VStack>
                   </HStack>
                 </VStack>
-              </GlassCard>
+              </Card>
             )}
 
             {/* Account Section */}
             <VStack space="sm">
-              <Heading size="md" color={isDark ? "$white" : "$textLight900"}>Account</Heading>
+              <Heading size="md" color={isDark ? "$textDark50" : "$textLight900"}>Account</Heading>
 
               {profile?.subscriptionPlan === 'FREE' && (
                 <Pressable onPress={() => router.push('/(app)/upgrade')}>
-                  <GlassCard p="$4" opacity={0.08}>
+                  <Card
+                    p="$4"
+                    variant="elevated"
+                    bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                    borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+                  >
                     <HStack space="md" alignItems="center" justifyContent="space-between">
                       <HStack space="md" alignItems="center" flex={1}>
                         <Icon as={Crown} size="md" color="$secondary500" />
                         <VStack flex={1}>
-                          <Text fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>Upgrade to Pro</Text>
-                          <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
+                          <Text fontWeight="$semibold" color={isDark ? "$textDark50" : "$textLight900"}>Upgrade to Pro</Text>
+                          <Text size="xs" color={isDark ? "$textDark300" : "$textLight700"}>
                             Get unlimited ideas and AI replies
                           </Text>
                         </VStack>
                       </HStack>
                       <Icon as={ChevronRight} size="md" color={isDark ? "$textDark400" : "$textLight400"} />
                     </HStack>
-                  </GlassCard>
+                  </Card>
                 </Pressable>
               )}
 
               <Pressable onPress={() => setShowChangePassword(true)}>
-                <GlassCard p="$4" opacity={0.08}>
+                <Card
+                  p="$4"
+                  variant="elevated"
+                  bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                  borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+                >
                   <HStack space="md" alignItems="center" justifyContent="space-between">
                     <HStack space="md" alignItems="center" flex={1}>
-                      <Icon as={Lock} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
-                      <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight900"}>Change Password</Text>
+                      <Icon as={Lock} size="md" color={isDark ? "$textDark300" : "$textLight600"} />
+                      <Text fontWeight="$medium" color={isDark ? "$textDark50" : "$textLight900"}>Change Password</Text>
                     </HStack>
                     <Icon as={ChevronRight} size="md" color={isDark ? "$textDark400" : "$textLight400"} />
                   </HStack>
-                </GlassCard>
+                </Card>
               </Pressable>
 
               <Pressable>
-                <GlassCard p="$4" opacity={0.08}>
+                <Card
+                  p="$4"
+                  variant="elevated"
+                  bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                  borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+                >
                   <HStack space="md" alignItems="center" justifyContent="space-between">
                     <HStack space="md" alignItems="center" flex={1}>
-                      <Icon as={Receipt} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
-                      <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight900"}>Billing History</Text>
+                      <Icon as={Receipt} size="md" color={isDark ? "$textDark300" : "$textLight600"} />
+                      <Text fontWeight="$medium" color={isDark ? "$textDark50" : "$textLight900"}>Billing History</Text>
                     </HStack>
                     <Icon as={ChevronRight} size="md" color={isDark ? "$textDark400" : "$textLight400"} />
                   </HStack>
-                </GlassCard>
+                </Card>
               </Pressable>
             </VStack>
 
             {/* Preferences Section */}
             <VStack space="sm">
-              <Heading size="md" color={isDark ? "$white" : "$textLight900"}>Preferences</Heading>
+              <Heading size="md" color={isDark ? "$textDark50" : "$textLight900"}>Preferences</Heading>
 
-              <GlassCard p="$4" opacity={0.08}>
+              <Card
+                p="$4"
+                variant="elevated"
+                bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+              >
                 <VStack>
                   <HStack space="md" alignItems="center" justifyContent="space-between" pb="$4">
                     <HStack space="md" alignItems="center" flex={1}>
-                      <Icon as={Moon} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
-                      <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight900"}>Dark Mode</Text>
+                      <Icon as={Moon} size="md" color={isDark ? "$textDark300" : "$textLight600"} />
+                      <Text fontWeight="$medium" color={isDark ? "$textDark50" : "$textLight900"}>Dark Mode</Text>
                     </HStack>
                     <Switch
                       value={isDarkMode}
@@ -501,13 +528,13 @@ export default function ProfileScreen() {
                     />
                   </HStack>
 
-                  <Divider bg={isDark ? "rgba(255,255,255,0.1)" : "$borderLight200"} />
+                  <Divider bg={isDark ? "$borderDark700" : "$borderLight200"} />
 
                   <HStack space="md" alignItems="center" justifyContent="space-between" py="$4">
                     <HStack space="md" alignItems="center" flex={1}>
-                      <Icon as={Bell} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
+                      <Icon as={Bell} size="md" color={isDark ? "$textDark300" : "$textLight600"} />
                       <VStack flex={1}>
-                        <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight900"}>Push Notifications</Text>
+                        <Text fontWeight="$medium" color={isDark ? "$textDark50" : "$textLight900"}>Push Notifications</Text>
                         <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
                           Get notified when AI responds
                         </Text>
@@ -519,13 +546,13 @@ export default function ProfileScreen() {
                     />
                   </HStack>
 
-                  <Divider bg={isDark ? "rgba(255,255,255,0.1)" : "$borderLight200"} />
+                  <Divider bg={isDark ? "$borderDark700" : "$borderLight200"} />
 
                   <HStack space="md" alignItems="center" justifyContent="space-between" pt="$4">
                     <HStack space="md" alignItems="center" flex={1}>
-                      <Icon as={Mail} size="md" color={isDark ? "$textDark300" : "$textLight500"} />
+                      <Icon as={Mail} size="md" color={isDark ? "$textDark300" : "$textLight600"} />
                       <VStack flex={1}>
-                        <Text fontWeight="$medium" color={isDark ? "$white" : "$textLight900"}>Marketing Emails</Text>
+                        <Text fontWeight="$medium" color={isDark ? "$textDark50" : "$textLight900"}>Marketing Emails</Text>
                         <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
                           Receive tips and updates
                         </Text>
@@ -537,14 +564,19 @@ export default function ProfileScreen() {
                     />
                   </HStack>
                 </VStack>
-              </GlassCard>
+              </Card>
             </VStack>
 
             {/* Support Section */}
             <VStack space="sm">
-              <Heading size="md" color={isDark ? "$white" : "$textLight900"}>Support</Heading>
+              <Heading size="md" color={isDark ? "$textDark50" : "$textLight900"}>Support</Heading>
 
-              <GlassCard p="$0" opacity={0.08}>
+              <Card
+                p="$0"
+                variant="elevated"
+                bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+              >
                 <Accordion type="single" variant="unfilled">
               <AccordionItem value="faq">
                 <AccordionHeader>
@@ -605,7 +637,7 @@ export default function ProfileScreen() {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
-            </GlassCard>
+            </Card>
           </VStack>
 
             {/* Platform Test Button (Dev Only) */}
@@ -635,17 +667,22 @@ export default function ProfileScreen() {
               </Button>
 
               <Pressable onPress={() => setShowDeleteAccount(true)}>
-                <GlassCard p="$4" opacity={0.08}>
+                <Card
+                  p="$4"
+                  variant="elevated"
+                  bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                  borderColor="$error500"
+                  borderWidth={1}
+                >
                   <HStack space="md" alignItems="center" justifyContent="center">
                     <Icon as={Trash2} size="md" color="$error500" />
                     <Text color="$error600" fontWeight="$medium">Delete Account</Text>
                   </HStack>
-                </GlassCard>
+                </Card>
               </Pressable>
             </VStack>
           </VStack>
         </ScrollView>
-      </GradientBackground>
 
       {/* Edit Profile Modal */}
       <Modal

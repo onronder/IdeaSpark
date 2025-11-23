@@ -156,8 +156,8 @@ class NotificationService {
       const deviceName = Device.modelName || Device.deviceName || 'Unknown Device';
       const deviceId = Constants.deviceId || undefined;
 
-      await api.post('/api/v1/notifications/register', {
-        deviceToken: token,
+      await api.post('/notifications/register', {
+        token,
         platform,
         deviceId,
         deviceName,
@@ -218,7 +218,7 @@ class NotificationService {
   async unregister(): Promise<void> {
     try {
       if (this.pushToken) {
-        await api.post('/api/v1/notifications/unregister', {
+        await api.post('/notifications/unregister', {
           token: this.pushToken,
         });
 
@@ -322,7 +322,7 @@ class NotificationService {
    */
   async fetchNotifications(limit = 50, offset = 0) {
     try {
-      const response = await api.get('/api/v1/notifications', {
+      const response = await api.get('/notifications', {
         params: { limit, offset },
       });
       return response.data.data;
@@ -337,7 +337,7 @@ class NotificationService {
    */
   async markAsRead(notificationId: string): Promise<void> {
     try {
-      await api.patch(`/api/v1/notifications/${notificationId}/read`);
+      await api.patch(`/notifications/${notificationId}/read`);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
       throw error;
@@ -349,7 +349,7 @@ class NotificationService {
    */
   async markAllAsRead(): Promise<void> {
     try {
-      await api.patch('/api/v1/notifications/read-all');
+      await api.patch('/notifications/read-all');
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
       throw error;

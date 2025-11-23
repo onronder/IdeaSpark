@@ -49,7 +49,7 @@ export function useUserProfile() {
   return useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async (): Promise<UserProfile> => {
-      const response = await api.get('/api/v1/users/me');
+      const response = await api.get('/users/me');
       return response.data.data;
     },
     enabled: !!user,
@@ -70,7 +70,7 @@ export function useUpdateProfile() {
       email?: string;
       preferences?: Partial<UserProfile['preferences']>;
     }) => {
-      const response = await api.patch('/api/v1/users/me', data);
+      const response = await api.patch('/users/me', data);
       return response.data.data;
     },
     onSuccess: async () => {
@@ -96,7 +96,7 @@ export function useChangePassword() {
       currentPassword: string;
       newPassword: string;
     }) => {
-      const response = await api.post('/api/v1/users/change-password', data);
+      const response = await api.post('/users/change-password', data);
       return response.data;
     },
     onSuccess: async () => {
@@ -179,7 +179,7 @@ export function useUploadAvatar() {
         } as any);
       }
 
-      const response = await api.post('/api/v1/users/avatar', formData, {
+      const response = await api.post('/users/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -213,7 +213,7 @@ export function useDeleteAccount() {
 
   return useMutation({
     mutationFn: async (password: string) => {
-      const response = await api.delete('/api/v1/users/me', {
+      const response = await api.delete('/users/me', {
         data: { password },
       });
       return response.data;
@@ -247,7 +247,7 @@ export function useUpdateNotifications() {
 
   return useMutation({
     mutationFn: async (preferences: Partial<UserProfile['preferences']['notifications']>) => {
-      const response = await api.patch('/api/v1/users/notifications', preferences);
+      const response = await api.patch('/users/notifications', preferences);
       return response.data.data;
     },
     onSuccess: () => {
@@ -268,7 +268,7 @@ export function useUpdateTheme() {
 
   return useMutation({
     mutationFn: async (theme: 'light' | 'dark' | 'system') => {
-      const response = await api.patch('/api/v1/users/theme', { theme });
+      const response = await api.patch('/users/theme', { theme });
       return response.data.data;
     },
     onSuccess: (data) => {
@@ -288,7 +288,7 @@ export function useUserStats() {
   return useQuery({
     queryKey: ['userStats', user?.id],
     queryFn: async (): Promise<UserStats> => {
-      const response = await api.get('/api/v1/users/stats');
+      const response = await api.get('/users/stats');
       return response.data.data;
     },
     enabled: !!user,
@@ -303,7 +303,7 @@ export function useAuditHistory(limit: number = 50) {
   return useQuery({
     queryKey: ['auditHistory', user?.id, limit],
     queryFn: async () => {
-      const response = await api.get('/api/v1/users/audit-history', {
+      const response = await api.get('/users/audit-history', {
         params: { limit },
       });
       return response.data.data;

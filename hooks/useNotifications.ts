@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
+import { useRouter } from 'expo-router';
 import { notificationService } from '@/services/notificationService';
-import { useAuth } from './useAuth';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 interface NotificationData {
   id: string;
@@ -23,6 +24,7 @@ interface NotificationsResult {
 
 export function useNotifications() {
   const { user } = useAuth();
+  const router = useRouter();
   const [isInitialized, setIsInitialized] = useState(false);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [permissionsGranted, setPermissionsGranted] = useState(false);
@@ -53,7 +55,7 @@ export function useNotifications() {
           onNotificationResponse: (response) => {
             setLastNotificationResponse(response);
             // Handle notification tap - navigate to relevant screen
-            handleNotificationTap(response);
+          handleNotificationTap(response);
           },
         });
 
@@ -207,27 +209,30 @@ export function useNotifications() {
    */
   const handleNotificationTap = useCallback((response: Notifications.NotificationResponse) => {
     const { notification } = response;
-    const data = notification.request.content.data;
+    const data: any = notification.request.content.data || {};
+    const type = data.type as string | undefined;
 
-    // Handle navigation based on notification type
-    if (data?.type === 'IDEA_RESPONSE' && data?.ideaSessionId) {
-      // Navigate to idea session
-      console.log('Navigate to idea session:', data.ideaSessionId);
-      // TODO: Implement navigation to idea session
-    } else if (data?.type === 'QUOTA_EXCEEDED' || data?.type === 'QUOTA_WARNING') {
-      // Navigate to subscription screen
-      console.log('Navigate to subscription screen');
-      // TODO: Implement navigation to subscription screen
-    } else if (
-      data?.type === 'SUBSCRIPTION_EXPIRING' ||
-      data?.type === 'SUBSCRIPTION_RENEWED' ||
-      data?.type === 'PAYMENT_FAILED'
-    ) {
-      // Navigate to subscription settings
-      console.log('Navigate to subscription settings');
-      // TODO: Implement navigation to subscription settings
+    // IDEA_RESPONSE notifications carry ideaSessionId -> open chat detail
+    if (type === 'IDEA_RESPONSE' && data.ideaSessionId) {
+      router.push({ pathname: '/(app)/chats/[id]', params: { id: String(data.ideaSessionId) } });
+      return;
     }
-  }, []);
+
+    // Quota and subscription related notifications -> upgrade screen
+    if (
+      type === 'QUOTA_EXCEEDED' ||
+      type === 'QUOTA_WARNING' ||
+      type === 'SUBSCRIPTION_EXPIRING' ||
+      type === 'SUBSCRIPTION_RENEWED' ||
+      type === 'PAYMENT_FAILED'
+    ) {
+      router.push('/(app)/upgrade');
+      return;
+    }
+
+    // Default: go to home tab
+    router.push('/(app)');
+  }, [router]);
 
   /**
    * Refresh notifications

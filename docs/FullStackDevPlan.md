@@ -208,7 +208,7 @@ cloudzero.com
 cloudzero.com
 . Or fine-tuning a smaller model on your domain data if that becomes cheaper for heavy usage (this would be a later optimization if needed).
 Revenue Model Integration: To ensure profitability, implement how the app will earn revenue (if not already decided):
-If it’s subscription-based, integrate a payment gateway (Stripe, etc.) and tie user plans to usage. For example, a basic plan might include X AI queries per month, and higher plans more. Implement the logic to enforce these limits and a UI for users to upgrade when needed.
+If it’s subscription-based, integrate a billing mechanism appropriate for your platform. For IdeaSpark’s mobile-first setup, this means using in-app subscriptions via Apple App Store and Google Play (not Stripe) and tying user plans to usage. For example, a basic plan might include X AI queries per month, and higher plans more. Implement the logic to enforce these limits and a UI for users to upgrade when needed.
 If it’s pay-as-you-go, show users their usage and charge accordingly. Possibly implement a system of credits or tokens that users buy. Ensure the cost per token (what you charge) is higher than what OpenAI charges you per token plus a margin for other costs and profit.
 The LTV (Lifetime Value) vs CAC should be favorable. Track the average revenue per user and ensure it exceeds the CAC + variable costs. This might be beyond code (more in analytics/business analysis), but the app can support it by providing data on user engagement (which correlates to LTV).
 Monitor Key Metrics Post-Launch: Once live, continually monitor:

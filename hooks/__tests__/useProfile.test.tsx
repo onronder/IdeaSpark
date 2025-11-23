@@ -15,8 +15,8 @@ import { useToast } from '@/contexts/ToastContext';
 import * as ImagePicker from 'expo-image-picker';
 
 // Mock dependencies
-jest.mock('@/services/api');
-jest.mock('@/contexts/AuthContext');
+jest.mock('@/lib/api');
+jest.mock('@/contexts/SupabaseAuthContext');
 jest.mock('@/contexts/ToastContext');
 jest.mock('expo-image-picker');
 
@@ -83,7 +83,7 @@ describe('useProfile hooks', () => {
       });
 
       expect(result.current.data).toEqual(mockProfile);
-      expect(api.get).toHaveBeenCalledWith('/api/v1/users/me');
+      expect(api.get).toHaveBeenCalledWith('/users/me');
     });
 
     it('should not fetch if user is not authenticated', () => {
@@ -119,7 +119,7 @@ describe('useProfile hooks', () => {
         await result.current.mutateAsync(updateData);
       });
 
-      expect(api.patch).toHaveBeenCalledWith('/api/v1/users/me', updateData);
+      expect(api.patch).toHaveBeenCalledWith('/users/me', updateData);
       expect(mockAuth.refreshUser).toHaveBeenCalled();
       expect(mockToast.success).toHaveBeenCalledWith(
         'Success',
@@ -164,7 +164,7 @@ describe('useProfile hooks', () => {
         });
       });
 
-      expect(api.post).toHaveBeenCalledWith('/api/v1/users/change-password', {
+      expect(api.post).toHaveBeenCalledWith('/users/change-password', {
         currentPassword: 'old123',
         newPassword: 'new456',
       });
@@ -227,7 +227,7 @@ describe('useProfile hooks', () => {
         await result.current.mutateAsync('password123');
       });
 
-      expect(api.delete).toHaveBeenCalledWith('/api/v1/users/me', {
+      expect(api.delete).toHaveBeenCalledWith('/users/me', {
         data: { password: 'password123' },
       });
       expect(mockToast.success).toHaveBeenCalledWith(
@@ -258,7 +258,7 @@ describe('useProfile hooks', () => {
         await result.current.mutateAsync(prefs);
       });
 
-      expect(api.patch).toHaveBeenCalledWith('/api/v1/users/notifications', prefs);
+      expect(api.patch).toHaveBeenCalledWith('/users/notifications', prefs);
       expect(mockToast.success).toHaveBeenCalledWith(
         'Success',
         'Notification preferences updated'
@@ -280,7 +280,7 @@ describe('useProfile hooks', () => {
         await result.current.mutateAsync('dark');
       });
 
-      expect(api.patch).toHaveBeenCalledWith('/api/v1/users/theme', {
+      expect(api.patch).toHaveBeenCalledWith('/users/theme', {
         theme: 'dark',
       });
     });
@@ -310,7 +310,7 @@ describe('useProfile hooks', () => {
       });
 
       expect(result.current.data).toEqual(mockStats);
-      expect(api.get).toHaveBeenCalledWith('/api/v1/users/stats');
+      expect(api.get).toHaveBeenCalledWith('/users/stats');
     });
   });
 });

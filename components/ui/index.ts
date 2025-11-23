@@ -1,3 +1,3 @@
-export { GradientBackground } from './GradientBackground';
-export { GlassCard } from './GlassCard';
-export { AnimatedOrb } from './AnimatedOrb';
+export { SectionHeader } from './SectionHeader';
+export { EmptyState } from './EmptyState';
+export { StatCard } from './StatCard';

@@ -28,6 +28,7 @@ import {
   Spinner,
   Icon,
   Center,
+  Card,
 } from "@gluestack-ui/themed";
 import {
   ArrowRight,
@@ -45,7 +46,7 @@ import { useCreateIdea, useUsageSummary } from '@/hooks/useApi';
 import { useToast } from '@/contexts/ToastContext';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GradientBackground, GlassCard, AnimatedOrb } from '@/components/ui';
+import { SectionHeader } from '@/components/ui';
 
 // Categories to choose from
 const CATEGORIES = [
@@ -70,7 +71,6 @@ export default function HomeScreen() {
   const isDark = colorMode === 'dark';
 
   const [formData, setFormData] = useState({
-    title: '',
     description: '',
     category: 'BUSINESS' as any,
   });
@@ -82,10 +82,6 @@ export default function HomeScreen() {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Please enter a title for your idea';
-    }
 
     if (!formData.description.trim()) {
       newErrors.description = 'Please describe your idea';
@@ -104,9 +100,17 @@ export default function HomeScreen() {
     logger.logUserAction('create_idea_attempt', { category: formData.category });
 
     try {
+      const description = formData.description.trim();
+      const firstLine = description.split(/\n/)[0].trim();
+      const generatedTitleBase = firstLine || description;
+      const generatedTitle =
+        generatedTitleBase.length <= 60
+          ? generatedTitleBase
+          : `${generatedTitleBase.slice(0, 57)}…`;
+
       const result = await createIdea.mutateAsync({
-        title: formData.title.trim(),
-        description: formData.description.trim(),
+        title: generatedTitle || 'Untitled idea',
+        description,
         category: formData.category,
       });
 
@@ -114,7 +118,7 @@ export default function HomeScreen() {
         toast.success('Idea created!', 'Start chatting to refine it');
         router.push(`/(app)/chats/${result.id}`);
         // Clear form
-        setFormData({ title: '', description: '', category: 'BUSINESS' });
+        setFormData({ description: '', category: 'BUSINESS' });
       }
     } catch (err: any) {
       if (err.message?.includes('quota')) {
@@ -144,41 +148,47 @@ export default function HomeScreen() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
   };
 
   return (
-    <Box flex={1}>
-      <GradientBackground>
-        <ScrollView
+    <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
+      <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={refetchUsage} />
           }
+          contentContainerStyle={{ paddingBottom: 24 }}
+      >
+        {/* Header */}
+        <Box
+          pt={insets.top + 20}
+          pb="$6"
+          px="$4"
+          w="100%"
+          maxWidth={480}
+          alignSelf="center"
         >
-          {/* Header with Orb */}
-          <Box pt={insets.top + 20} pb="$6" px="$4">
-            <HStack justifyContent="space-between" alignItems="center" mb="$6">
+            <HStack justifyContent="space-between" alignItems="center" mb="$5">
               <VStack flex={1}>
-                <Text size="sm" color={isDark ? "$textDark400" : "$textLight500"}>
+                <Text size="sm" color={isDark ? "$textDark400" : "$textLight600"}>
                   {getGreeting()},
                 </Text>
-                <Heading size="2xl" color={isDark ? "$white" : "$textLight900"}>
+                <Heading size="2xl" color={isDark ? "$textDark50" : "$textLight900"}>
                   {user?.name || 'Innovator'}
                 </Heading>
               </VStack>
 
-              <HStack space="sm" alignItems="center">
-                <AnimatedOrb size={60} icon="lightbulb" />
+              <HStack space="sm" alignItems="center" justifyContent="flex-end">
                 {user?.subscriptionPlan === 'PRO' ? (
                   <Pressable
                     onPress={() => router.push('/(app)/profile')}
                     accessibilityRole="button"
                     accessibilityLabel="Pro member - Go to profile"
                   >
-                    <Badge action="success" variant="solid" size="md">
+                    <Badge action="success" variant="subtle" size="md">
                       <BadgeIcon as={Crown} mr="$1" />
                       <BadgeText>Pro</BadgeText>
                     </Badge>
@@ -189,8 +199,7 @@ export default function HomeScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Upgrade to Pro"
                   >
-                    <Badge action="warning" variant="solid" size="md">
-                      <BadgeIcon as={Sparkles} mr="$1" />
+                    <Badge action="primary" variant="outline" size="md">
                       <BadgeText>Upgrade</BadgeText>
                     </Badge>
                   </Pressable>
@@ -198,58 +207,42 @@ export default function HomeScreen() {
               </HStack>
             </HStack>
 
-            {/* Usage Stats */}
-            {user?.subscriptionPlan === 'FREE' && usage && (
-              <GlassCard p="$4" mb="$4">
-                <HStack space="md" alignItems="center">
-                  <Icon as={Zap} size="md" color="$warning500" />
-                  <VStack flex={1}>
-                    <Text size="sm" fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>
-                      Free Plan Usage
-                    </Text>
-                    <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
-                      {usage.remainingSessions !== null && usage.remainingSessions !== undefined
-                        ? `${usage.remainingSessions} idea session${usage.remainingSessions !== 1 ? 's' : ''} remaining`
-                        : 'Unlimited sessions'} •
-                      {usage.remainingMessages !== null && usage.remainingMessages !== undefined
-                        ? ` ${usage.remainingMessages} AI repl${usage.remainingMessages !== 1 ? 'ies' : 'y'} per session`
-                        : ' Unlimited replies'}
-                    </Text>
-                  </VStack>
-                </HStack>
-              </GlassCard>
+            {/* Usage Overview (subtle, below header) */}
+            {usage && (
+              <Text size="xs" color={isDark ? "$textDark500" : "$textLight400"}>
+                {user?.subscriptionPlan === 'FREE'
+                  ? `${
+                      usage.remainingSessions ?? 'Unlimited'
+                    } ideas left · ${
+                      usage.remainingMessages ?? 'Unlimited'
+                    } replies per idea`
+                  : 'Pro plan · unlimited ideas & replies'}
+              </Text>
             )}
+        </Box>
 
-            {user?.subscriptionPlan === 'PRO' && usage && (
-              <GlassCard p="$4" mb="$4">
-                <HStack space="md" alignItems="center">
-                  <Icon as={Crown} size="md" color="$success500" />
-                  <VStack flex={1}>
-                    <Text size="sm" fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>
-                      ✨ Pro Member - Unlimited Ideas & AI Replies
-                    </Text>
-                    {usage.monthlyTokenUsage > 0 && (
-                      <Text size="xs" color={isDark ? "$textDark400" : "$textLight600"}>
-                        This month: {usage.monthlyTokenUsage.toLocaleString()} tokens used
-                        {usage.dailyTokenUsage > 0 && ` (${usage.dailyTokenUsage.toLocaleString()} today)`}
-                      </Text>
-                    )}
-                  </VStack>
-                </HStack>
-              </GlassCard>
-            )}
-          </Box>
-
-          <VStack space="lg" px="$4" pb="$6">
+        <VStack
+          space="lg"
+          px="$4"
+          pb="$6"
+          w="100%"
+          maxWidth={480}
+          alignSelf="center"
+        >
             {/* Idea Creation Card */}
-            <GlassCard p="$6">
+            <Card
+              p="$6"
+              variant="elevated"
+              bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+              borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+            >
               <VStack space="md">
                 <Center mb="$2">
-                  <Heading size="xl" textAlign="center" color={isDark ? "$white" : "$textLight900"}>
-                    Start Your Idea Journey
+                  <Heading size="xl" textAlign="center" color={isDark ? "$textDark50" : "$textLight900"}>
+                    Describe your idea
                   </Heading>
-                  <Text size="sm" color={isDark ? "$textDark400" : "$textLight500"} textAlign="center" mt="$2">
-                    Tell us about your concept and get AI-powered suggestions
+                  <Text size="sm" color={isDark ? "$textDark400" : "$textLight600"} textAlign="center" mt="$2">
+                    Tell IdeaSpark what you&apos;re working on and we&apos;ll help you refine it.
                   </Text>
                 </Center>
 
@@ -260,82 +253,76 @@ export default function HomeScreen() {
                   </Alert>
                 )}
 
-                {/* Title Input */}
-                <FormControl isInvalid={!!errors.title}>
-                  <FormControlLabel>
-                    <FormControlLabelText color={isDark ? "$textDark300" : "$textLight700"}>
-                      Idea Title
-                    </FormControlLabelText>
-                  </FormControlLabel>
-                  <Input
-                    variant="outline"
-                    size="lg"
-                    isDisabled={createIdea.isPending}
-                    bg={isDark ? "rgba(255,255,255,0.05)" : "$white"}
-                    borderColor={isDark ? "rgba(255,255,255,0.1)" : "$borderLight300"}
-                  >
-                    <InputField
-                      placeholder="Give your idea a catchy title..."
-                      value={formData.title}
-                      onChangeText={(text) => handleInputChange('title', text)}
-                      placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-                    />
-                  </Input>
-                  {errors.title && (
-                    <FormControlError>
-                      <FormControlErrorText>{errors.title}</FormControlErrorText>
-                    </FormControlError>
-                  )}
-                </FormControl>
-
                 {/* Category Selection */}
                 <FormControl>
                   <FormControlLabel>
-                    <FormControlLabelText color={isDark ? "$textDark300" : "$textLight700"}>
+                    <FormControlLabelText color={isDark ? "$textDark300" : "$textLight800"}>
                       Category
                     </FormControlLabelText>
                   </FormControlLabel>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <HStack space="sm">
-                      {CATEGORIES.map((cat) => (
-                        <Pressable
-                          key={cat.value}
-                          onPress={() => setFormData({ ...formData, category: cat.value })}
-                          disabled={createIdea.isPending}
-                        >
-                          <Badge
-                            variant={formData.category === cat.value ? "solid" : "outline"}
-                            action={formData.category === cat.value ? "primary" : "secondary"}
-                            size="lg"
+                      {CATEGORIES.map((cat) => {
+                        const isSelected = formData.category === cat.value;
+                        return (
+                          <Pressable
+                            key={cat.value}
+                            onPress={() => setFormData({ ...formData, category: cat.value })}
+                            disabled={createIdea.isPending}
                           >
-                            <BadgeText>{cat.icon} {cat.label}</BadgeText>
-                          </Badge>
-                        </Pressable>
-                      ))}
+                            <Box
+                              px="$3.5"
+                              py="$2"
+                              borderRadius="$full"
+                              borderWidth={1}
+                              borderColor={
+                                isSelected
+                                  ? "$primary500"
+                                  : isDark
+                                    ? "$borderDark700"
+                                    : "$borderLight200"
+                              }
+                              bg={
+                                isSelected
+                                  ? "$primary50"
+                                  : "transparent"
+                              }
+                            >
+                              <HStack space="xs" alignItems="center">
+                                <Text size="sm">{cat.icon}</Text>
+                                <Text
+                                  size="sm"
+                                  fontWeight={isSelected ? "$semibold" : "$medium"}
+                                  color={isDark ? "$textDark300" : "$textLight700"}
+                                >
+                                  {cat.label}
+                                </Text>
+                              </HStack>
+                            </Box>
+                          </Pressable>
+                        );
+                      })}
                     </HStack>
                   </ScrollView>
                 </FormControl>
 
                 {/* Description Textarea */}
                 <FormControl isInvalid={!!errors.description}>
-                  <FormControlLabel>
-                    <FormControlLabelText color={isDark ? "$textDark300" : "$textLight700"}>
-                      Description
-                    </FormControlLabelText>
-                  </FormControlLabel>
                   <Textarea
                     h="$32"
                     size="lg"
                     isDisabled={createIdea.isPending}
                     isInvalid={!!errors.description}
-                    bg={isDark ? "rgba(255,255,255,0.05)" : "$white"}
-                    borderColor={isDark ? "rgba(255,255,255,0.1)" : "$borderLight300"}
+                    bg={isDark ? "$backgroundDark800" : "$backgroundLight0"}
+                    borderRadius="$xl"
+                    borderWidth={1}
+                    borderColor={isDark ? "$borderDark700" : "$borderLight200"}
                   >
                     <TextareaInput
-                      placeholder="Describe your idea in detail... What problem does it solve? Who is it for?"
+                      placeholder="Describe your idea… What are you trying to build or explore?"
                       value={formData.description}
                       onChangeText={(text) => handleInputChange('description', text)}
-                      placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                      placeholderTextColor={isDark ? "$textDark500" : "$textLight400"}
                     />
                   </Textarea>
                   {errors.description && (
@@ -349,7 +336,7 @@ export default function HomeScreen() {
                   size="lg"
                   variant="solid"
                   action="primary"
-                  isDisabled={!formData.title.trim() || !formData.description.trim() || createIdea.isPending}
+                  isDisabled={!formData.description.trim() || createIdea.isPending}
                   onPress={handleSubmit}
                   accessibilityRole="button"
                   accessibilityLabel="Refine my idea with AI"
@@ -365,15 +352,20 @@ export default function HomeScreen() {
                   )}
                 </Button>
               </VStack>
-            </GlassCard>
+            </Card>
 
-            {/* Features Grid */}
+            {/* Benefits */}
             <VStack space="md">
-              <Heading size="lg" color={isDark ? "$white" : "$textLight900"}>
-                How IdeaSpark Helps You
+              <Heading size="lg" color={isDark ? "$textDark50" : "$textLight900"}>
+                What you can do here
               </Heading>
 
-              <GlassCard p="$4">
+              <Card
+                p="$4"
+                variant="elevated"
+                bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+              >
                 <HStack space="md" alignItems="flex-start">
                   <Box
                     bg="$info100"
@@ -385,17 +377,22 @@ export default function HomeScreen() {
                     <Icon as={MessageCircle} size="md" color="$info600" />
                   </Box>
                   <VStack flex={1} space="xs">
-                    <Text fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>
-                      Interactive AI Chat
+                    <Text fontWeight="$semibold" color={isDark ? "$textDark50" : "$textLight900"}>
+                      Talk through your ideas
                     </Text>
-                    <Text size="sm" color={isDark ? "$textDark400" : "$textLight500"}>
-                      Have a conversation with AI to explore and refine your ideas
+                    <Text size="sm" color={isDark ? "$textDark300" : "$textLight700"}>
+                      Use a structured chat to explore, stress‑test, and polish each concept.
                     </Text>
                   </VStack>
                 </HStack>
-              </GlassCard>
+              </Card>
 
-              <GlassCard p="$4">
+              <Card
+                p="$4"
+                variant="elevated"
+                bg={isDark ? "$backgroundDark900" : "$backgroundLight0"}
+                borderColor={isDark ? "$borderDark700" : "$borderLight200"}
+              >
                 <HStack space="md" alignItems="flex-start">
                   <Box
                     bg="$success100"
@@ -407,41 +404,18 @@ export default function HomeScreen() {
                     <Icon as={Lightbulb} size="md" color="$success600" />
                   </Box>
                   <VStack flex={1} space="xs">
-                    <Text fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>
-                      Smart Suggestions
+                    <Text fontWeight="$semibold" color={isDark ? "$textDark50" : "$textLight900"}>
+                      Get sharper opportunities
                     </Text>
-                    <Text size="sm" color={isDark ? "$textDark400" : "$textLight500"}>
-                      Get personalized recommendations based on your idea category
-                    </Text>
-                  </VStack>
-                </HStack>
-              </GlassCard>
-
-              <GlassCard p="$4">
-                <HStack space="md" alignItems="flex-start">
-                  <Box
-                    bg="$secondary100"
-                    p="$3"
-                    borderRadius="$full"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Icon as={Crown} size="md" color="$secondary600" />
-                  </Box>
-                  <VStack flex={1} space="xs">
-                    <Text fontWeight="$semibold" color={isDark ? "$white" : "$textLight900"}>
-                      Unlimited with Pro
-                    </Text>
-                    <Text size="sm" color={isDark ? "$textDark400" : "$textLight500"}>
-                      Upgrade to Pro for unlimited ideas and AI conversations
+                    <Text size="sm" color={isDark ? "$textDark300" : "$textLight700"}>
+                      Turn rough thoughts into clear problem statements, user stories, and next steps.
                     </Text>
                   </VStack>
                 </HStack>
-              </GlassCard>
+              </Card>
             </VStack>
           </VStack>
-        </ScrollView>
-      </GradientBackground>
+      </ScrollView>
     </Box>
   );
 }

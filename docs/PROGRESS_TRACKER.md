@@ -25,7 +25,7 @@ This document tracks the detailed progress of the IdeaSpark full-stack applicati
 - **Date:** November 19, 2024, 10:35 AM
 - **Summary:**
   - Created comprehensive .env.example with 50+ environment variables
-  - Covered all services: Database, Redis, JWT, OpenAI, Stripe, Sentry, Firebase, Analytics, AWS
+  - Covered all services: Database, Redis, JWT, OpenAI, Apple/Google IAP, Sentry, Firebase, Analytics, AWS
   - Set up proper defaults for local development
   - Created .gitignore to protect sensitive files
 

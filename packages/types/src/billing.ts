@@ -4,10 +4,8 @@ export interface BillingAudit {
   action: BillingAction;
   amount: number | null;
   currency: string | null;
-  stripeEventId: string | null;
-  stripeCustomerId: string | null;
-  stripeSubscriptionId: string | null;
-  metadata: Record<string, any>;
+  externalEventId: string | null;
+  metadata: Record<string, any> | null;
   ipAddress: string | null;
   userAgent: string | null;
   createdAt: Date;
@@ -27,61 +25,6 @@ export enum BillingAction {
   PORTAL_ACCESSED = 'PORTAL_ACCESSED',
 }
 
-export interface Invoice {
-  id: string;
-  userId: string;
-  stripeInvoiceId: string;
-  invoiceNumber: string;
-  amountDue: number;
-  amountPaid: number;
-  currency: string;
-  status: InvoiceStatus;
-  dueDate: Date | null;
-  paidAt: Date | null;
-  hostedInvoiceUrl: string | null;
-  invoicePdfUrl: string | null;
-  createdAt: Date;
-}
-
-export enum InvoiceStatus {
-  DRAFT = 'DRAFT',
-  OPEN = 'OPEN',
-  PAID = 'PAID',
-  UNCOLLECTIBLE = 'UNCOLLECTIBLE',
-  VOID = 'VOID',
-}
-
-export interface PaymentMethod {
-  id: string;
-  userId: string;
-  stripePaymentMethodId: string;
-  type: PaymentMethodType;
-  brand: string | null;
-  last4: string | null;
-  expMonth: number | null;
-  expYear: number | null;
-  isDefault: boolean;
-  createdAt: Date;
-}
-
-export enum PaymentMethodType {
-  CARD = 'CARD',
-  BANK_ACCOUNT = 'BANK_ACCOUNT',
-  PAYPAL = 'PAYPAL',
-  APPLE_PAY = 'APPLE_PAY',
-  GOOGLE_PAY = 'GOOGLE_PAY',
-}
-
-export interface StripeWebhookEvent {
-  id: string;
-  type: string;
-  data: {
-    object: any;
-    previous_attributes?: any;
-  };
-  created: number;
-}
-
 export interface PricingTier {
   id: string;
   name: string;
@@ -91,5 +34,6 @@ export interface PricingTier {
   interval: 'month' | 'year';
   features: string[];
   highlighted: boolean;
-  stripePriceId: string;
+  appleProductId?: string;
+  googleProductId?: string;
 }

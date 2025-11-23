@@ -7,13 +7,12 @@ import { SupabaseAuthProvider as AuthProvider, useAuth } from "@/contexts/Supaba
 import { ToastProvider } from "@/contexts/ToastContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AlertTriangle, RefreshCw } from "lucide-react-native";
+import { AlertTriangle, RefreshCw, Sparkles } from "lucide-react-native";
 import { useLogger } from "@/hooks/useLogger";
-import { GluestackUIProvider, Box, Center, VStack, Text } from "@gluestack-ui/themed";
+import { GluestackUIProvider, Box, Center, VStack, Text, Icon, Spinner } from "@gluestack-ui/themed";
 import { View, Text as RNText, TouchableOpacity } from "react-native";
 import { gluestackUIConfig } from "@/gluestack-ui.config";
-import { notificationService } from "@/services/notificationService";
-import { useRouter } from "expo-router";
+import { useNotifications } from "@/hooks/useNotifications";
 
 // Initialize Sentry as early as possible
 initSentry();
@@ -91,26 +90,21 @@ function ErrorFallback({ error, resetError }: { error: Error; resetError: () => 
 
 // Splash screen component
 function SplashScreen() {
-  const { GradientBackground, AnimatedOrb } = require('@/components/ui');
   const { useTheme } = require('@/contexts/ThemeContext');
   const { colorMode } = useTheme();
   const isDark = colorMode === 'dark';
 
   return (
-    <Box flex={1}>
-      <GradientBackground variant="primary">
-        <Center flex={1}>
-          <VStack space="lg" alignItems="center">
-            <AnimatedOrb size={100} icon="sparkles" variant="primary" />
-            <Text size="2xl" fontWeight="$bold" color={isDark ? "$white" : "$textLight900"}>
-              IdeaSpark
-            </Text>
-            <Text color={isDark ? "$textDark400" : "$textLight500"} mt="$2">
-              Loading...
-            </Text>
-          </VStack>
-        </Center>
-      </GradientBackground>
+    <Box flex={1} bg={isDark ? "$backgroundDark950" : "$backgroundLight50"}>
+      <Center flex={1}>
+        <VStack space="lg" alignItems="center">
+          <Icon as={Sparkles} size="xl" color="$primary500" />
+          <Text size="2xl" fontWeight="$bold" color={isDark ? "$textDark50" : "$textLight900"}>
+            IdeaSpark
+          </Text>
+          <Spinner size="large" color="$primary500" mt="$4" />
+        </VStack>
+      </Center>
     </Box>
   );
 }
@@ -130,39 +124,9 @@ function ThemedGluestackProvider({ children }: { children: React.ReactNode }) {
 function AppNavigator() {
   const { isLoading, user } = useAuth();
   const logger = useLogger('AppNavigator');
-  const router = useRouter();
-
-  // Initialize notifications when user is authenticated
-  useEffect(() => {
-    if (user) {
-      // Initialize notification service
-      notificationService.initialize({
-        onNotificationResponse: (response) => {
-          // Handle notification tap - navigate to appropriate screen
-          const data = response.notification.request.content.data;
-
-          if (data?.ideaId) {
-            // Navigate to idea detail screen
-            router.push(`/(app)/ideas/${data.ideaId}`);
-          } else if (data?.type === 'subscription_update') {
-            // Navigate to subscription screen
-            router.push('/(app)/settings/subscription');
-          }
-
-          logger.info('Notification tapped', { data });
-        },
-      }).catch((error) => {
-        logger.error('Failed to initialize notifications', error);
-      });
-    }
-
-    return () => {
-      // Cleanup on unmount
-      if (user) {
-        notificationService.cleanup();
-      }
-    };
-  }, [user]);
+  // Global notifications initialization and handlers
+  // (handled via useNotifications hook using Supabase auth state)
+  useNotifications();
 
   useEffect(() => {
     // Set user context for Sentry when user changes

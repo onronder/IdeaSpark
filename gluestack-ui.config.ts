@@ -1,35 +1,37 @@
 import { createConfig } from '@gluestack-style/react';
 import { config as defaultConfig } from '@gluestack-ui/config';
 
-// IdeaSpark brand colors
+// IdeaSpark brand colors - Warm Stone Palette + Orange Accent
 const brandColors = {
+  // Primary: Orange accent for actions and emphasis
   primary: {
-    0: '#EEF2FF',
-    50: '#E0E7FF',
-    100: '#C7D2FE',
-    200: '#A5B4FC',
-    300: '#818CF8',
-    400: '#6366F1',
-    500: '#6366F1',
-    600: '#4F46E5',
-    700: '#4338CA',
-    800: '#3730A3',
-    900: '#312E81',
-    950: '#1E1B4B',
-  },
-  secondary: {
     0: '#FFF7ED',
     50: '#FFEDD5',
     100: '#FED7AA',
     200: '#FDBA74',
     300: '#FB923C',
-    400: '#F97316',
-    500: '#EA580C',
-    600: '#C2410C',
-    700: '#9A3412',
-    800: '#7C2D12',
-    900: '#431407',
-    950: '#341203',
+    400: '#FB923C', // Lighter for dark mode
+    500: '#F97316', // Main orange
+    600: '#EA580C',
+    700: '#C2410C',
+    800: '#9A3412',
+    900: '#7C2D12',
+    950: '#431407',
+  },
+  // Secondary: Warm stone neutrals
+  secondary: {
+    0: '#FFFFFF',     // Pure white
+    50: '#FAFAF9',    // Stone 50 - subtle warmth
+    100: '#F5F5F4',   // Stone 100
+    200: '#E7E5E4',   // Stone 200
+    300: '#D6D3D1',   // Stone 300
+    400: '#A8A29E',   // Stone 400
+    500: '#78716C',   // Stone 500
+    600: '#57534E',   // Stone 600
+    700: '#44403C',   // Stone 700
+    800: '#292524',   // Stone 800
+    900: '#1C1917',   // Stone 900
+    950: '#0C0A09',   // Stone 950 - almost black
   },
   info: {
     0: '#EFF6FF',
@@ -243,34 +245,40 @@ export const gluestackUIConfig = createConfig({
   themes: {
     light: {
       colors: {
-        // Light theme colors
-        background: '#FFFFFF',
-        backgroundDark: '#F9FAFB',
-        backgroundLight: '#FFFFFF',
+        // Light theme - Warm stone backgrounds
+        backgroundLight0: '#FFFFFF',      // Pure white
+        backgroundLight50: '#FAFAF9',     // Stone 50 - primary background
+        backgroundLight100: '#F5F5F4',    // Stone 100 - cards/sections
 
-        text: '#111827',
-        textDark: '#000000',
-        textLight: '#6B7280',
+        // Light theme text - High contrast
+        textLight900: '#1C1917',          // Stone 900 - primary text
+        textLight700: '#57534E',          // Stone 600 - secondary text
+        textLight600: '#78716C',          // Stone 500 - tertiary text
+        textLight400: '#A8A29E',          // Stone 400 - metadata
 
-        borderDefault: '#E5E7EB',
-        borderLight: '#F3F4F6',
-        borderDark: '#D1D5DB',
+        // Light theme borders
+        borderLight100: '#F5F5F4',        // Stone 100 - subtle
+        borderLight200: '#E7E5E4',        // Stone 200 - default
+        borderLight300: '#D6D3D1',        // Stone 300 - strong
       },
     },
     dark: {
       colors: {
-        // Dark theme colors
-        background: '#111827',
-        backgroundDark: '#030712',
-        backgroundLight: '#1F2937',
+        // Dark theme - True black + warm grays
+        backgroundDark950: '#0C0A09',     // Stone 950 - primary background
+        backgroundDark900: '#1C1917',     // Stone 900 - elevated surfaces
+        backgroundDark800: '#292524',     // Stone 800 - cards/sections
 
-        text: '#F9FAFB',
-        textDark: '#FFFFFF',
-        textLight: '#9CA3AF',
+        // Dark theme text - Warm whites
+        textDark50: '#FAFAF9',            // Stone 50 - primary text
+        textDark300: '#D6D3D1',           // Stone 300 - secondary text
+        textDark400: '#A8A29E',           // Stone 400 - tertiary text
+        textDark500: '#78716C',           // Stone 500 - metadata
 
-        borderDefault: '#374151',
-        borderLight: '#1F2937',
-        borderDark: '#4B5563',
+        // Dark theme borders
+        borderDark800: '#292524',         // Stone 800 - subtle
+        borderDark700: '#44403C',         // Stone 700 - default
+        borderDark600: '#57534E',         // Stone 600 - strong
       },
     },
   },

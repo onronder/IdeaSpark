@@ -19,20 +19,20 @@ The IdeaSpark mobile application is **approximately 50% complete** with robust f
 
 ### PHASE 1: Backend Foundations (100% Complete)
 - **Server:** Express + TypeScript with graceful shutdown
-- **Database:** PostgreSQL with Prisma ORM (15+ models)
-- **Authentication:** JWT with refresh tokens, bcrypt password hashing
-- **Authorization:** Role-based access control, plan-based features
+- **Database:** PostgreSQL with Prisma ORM (15+ models) hosted on Supabase
+- **Authentication:** Supabase JWT validation in middleware, with legacy JWT/refresh-token service kept for tests and backwards compatibility
+- **Authorization:** Plan-based access control derived from `public.users` + `subscriptions`
 - **Security:** Rate limiting, input sanitization, CORS, Helmet
 - **Logging:** Pino with PII redaction, Sentry integration
 - **Testing:** 50+ backend tests with Jest/Supertest
 - **Docker:** Local development environment configured
 
 ### PHASE 2: Frontend Auth & State Wiring (100% Complete)
-- **Auth Context:** Token management with AsyncStorage
-- **Route Guards:** Protected routes with Expo Router groups
-- **API Client:** Axios with interceptors and auto-refresh
-- **React Query:** Typed hooks for all API endpoints
-- **Error Handling:** Global error boundaries and toast system
+- **Auth Context:** `SupabaseAuthContext` using Supabase JS client for sign-in, sign-up, sign-out, and session bootstrap
+- **Route Guards:** Protected routes with Expo Router groups (`(auth)` / `(app)`) driven by Supabase auth state
+- **API Client:** Axios wrapper (`lib/api.ts`) that injects Supabase access tokens and handles 401s by clearing auth state
+- **React Query:** Typed hooks for core API endpoints (ideas, messages, usage, profile)
+- **Error Handling:** Global Sentry-backed error boundaries and toast system
 - **User Feedback:** Centralized messaging system
 - **State Management:** Context providers for auth, theme, toast
 
@@ -169,14 +169,10 @@ GOOGLE_PACKAGE_NAME=com.ideaspark.app
 
 ### Backend API Endpoints Implemented
 
-#### Authentication (7 endpoints)
-- `POST /auth/register` - User registration with marketing attribution
-- `POST /auth/login` - Login with device fingerprinting
-- `POST /auth/logout` - Token revocation
-- `POST /auth/refresh` - Token refresh with rotation
-- `POST /auth/forgot-password` - Password reset initiation
-- `POST /auth/reset-password` - Password reset completion
-- `GET /auth/me` - Current user info
+#### Authentication & Identity
+- **Supabase Auth (hosted):** Handles email/password login, registration, and password reset flows directly via Supabase.
+- **Backend integration:** `GET /auth/me` (mounted as `/api/v1/auth/me`) - Returns current user profile + subscription based on Supabase JWT in `Authorization: Bearer <token>`.
+- **Legacy Node auth endpoints (`/auth/register`, `/auth/login`, etc.) remain in code for test coverage but are not used by the mobile client.
 
 #### Ideas & AI (7 endpoints)
 - `POST /ideas` - Create idea session
@@ -196,12 +192,16 @@ GOOGLE_PACKAGE_NAME=com.ideaspark.app
 - `POST /subscriptions/webhooks/apple` - Apple webhooks
 - `POST /subscriptions/webhooks/google` - Google webhooks
 
-#### User Management (5 endpoints)
-- `GET /users/profile` - Get user profile
-- `PUT /users/profile` - Update profile
+#### User Management (9 endpoints)
+- `GET /users/me` - Get current user profile
+- `PATCH /users/me` - Update profile (name, preferences)
 - `POST /users/change-password` - Change password
-- `POST /users/upload-avatar` - Avatar upload
-- `DELETE /users/account` - Delete account
+- `POST /users/avatar` - Avatar upload
+- `DELETE /users/me` - Delete account
+- `PATCH /users/notifications` - Update notification preferences
+- `PATCH /users/theme` - Update theme preference
+- `GET /users/stats` - User statistics (ideas, messages, usage)
+- `GET /users/audit-history` - Audit history for sensitive changes
 
 #### Notifications (3 endpoints)
 - `POST /notifications/register` - Register device token
@@ -217,7 +217,7 @@ GOOGLE_PACKAGE_NAME=com.ideaspark.app
 - **Analytics:** AnalyticsEvent, MarketingAttribution, AuditLog
 
 ### Security Implementation
-- **Authentication:** JWT with 15m access / 7d refresh tokens
+- **Authentication:** Supabase JWT validation in backend middleware (with legacy JWT access/refresh tokens still available for tests)
 - **Password:** bcrypt with 10 salt rounds
 - **Rate Limiting:**
   - Global: 100 req/15min
