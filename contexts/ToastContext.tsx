@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Animated, Dimensions, Platform } from 'react-native';
+import { Animated, Platform } from 'react-native';
+import { Box, HStack, VStack, Text, Pressable } from '@gluestack-ui/themed';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, radii, space } from '@/theme/tokens';
 
 // Toast types
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -97,35 +99,35 @@ function Toast({
     switch (toast.type) {
       case 'success':
         return {
-          bg: 'bg-green-50',
-          border: 'border-green-200',
-          icon: <CheckCircle size={20} color="#16A34A" />,
-          titleColor: 'text-green-900',
-          messageColor: 'text-green-700',
+          bg: colors.successLight || '#F0FDF4',
+          borderColor: '#BBF7D0',
+          icon: <CheckCircle size={20} color={colors.success} />,
+          titleColor: '#14532D',
+          messageColor: '#15803D',
         };
       case 'error':
         return {
-          bg: 'bg-red-50',
-          border: 'border-red-200',
-          icon: <AlertCircle size={20} color="#DC2626" />,
-          titleColor: 'text-red-900',
-          messageColor: 'text-red-700',
+          bg: colors.errorLight || '#FEF2F2',
+          borderColor: '#FECACA',
+          icon: <AlertCircle size={20} color={colors.error} />,
+          titleColor: '#7F1D1D',
+          messageColor: '#DC2626',
         };
       case 'warning':
         return {
-          bg: 'bg-yellow-50',
-          border: 'border-yellow-200',
-          icon: <AlertTriangle size={20} color="#D97706" />,
-          titleColor: 'text-yellow-900',
-          messageColor: 'text-yellow-700',
+          bg: colors.warningLight || '#FFFBEB',
+          borderColor: '#FEF08A',
+          icon: <AlertTriangle size={20} color={colors.warning} />,
+          titleColor: '#78350F',
+          messageColor: '#D97706',
         };
       case 'info':
         return {
-          bg: 'bg-blue-50',
-          border: 'border-blue-200',
-          icon: <Info size={20} color="#2563EB" />,
-          titleColor: 'text-blue-900',
-          messageColor: 'text-blue-700',
+          bg: colors.brand[50] || '#EFF6FF',
+          borderColor: colors.brand[200] || '#BFDBFE',
+          icon: <Info size={20} color={colors.brand[600]} />,
+          titleColor: colors.brand[900] || '#1E3A8A',
+          messageColor: colors.brand[700] || '#2563EB',
         };
     }
   };
@@ -138,36 +140,49 @@ function Toast({
         transform: [{ translateY }],
         opacity,
         position: 'absolute',
-        top: Platform.OS === 'ios' ? insets.top : insets.top + 10,
+        top: Platform.OS === 'ios' ? insets.top + 110 : insets.top + 120,
         left: 16,
         right: 16,
         zIndex: 9999,
       }}
     >
-      <View className={`${styles.bg} border ${styles.border} rounded-lg shadow-lg`}>
-        <View className="flex-row p-4">
-          <View className="mr-3 mt-0.5">{styles.icon}</View>
-          <View className="flex-1">
-            <Text className={`font-semibold ${styles.titleColor}`}>{toast.title}</Text>
+      <Box
+        bg={styles.bg}
+        borderWidth={1}
+        borderColor={styles.borderColor}
+        borderRadius={radii.md}
+        shadowColor="$black"
+        shadowOffset={{ width: 0, height: 4 }}
+        shadowOpacity={0.1}
+        shadowRadius={8}
+        elevation={5}
+      >
+        <HStack p={space.md} alignItems="flex-start">
+          <Box mr={space.sm} mt={2}>
+            {styles.icon}
+          </Box>
+          <VStack flex={1}>
+            <Text fontWeight="$semibold" color={styles.titleColor} fontSize="$md">
+              {toast.title}
+            </Text>
             {toast.message && (
-              <Text className={`mt-1 text-sm ${styles.messageColor}`}>{toast.message}</Text>
+              <Text mt={space.xxs} fontSize="$sm" color={styles.messageColor}>
+                {toast.message}
+              </Text>
             )}
             {toast.action && (
-              <TouchableOpacity
-                onPress={toast.action.onPress}
-                className="mt-2"
-              >
-                <Text className={`text-sm font-medium ${styles.titleColor}`}>
+              <Pressable onPress={toast.action.onPress} mt={space.xs}>
+                <Text fontSize="$sm" fontWeight="$medium" color={styles.titleColor}>
                   {toast.action.label}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             )}
-          </View>
-          <TouchableOpacity onPress={handleHide} className="ml-2">
+          </VStack>
+          <Pressable onPress={handleHide} ml={space.xs}>
             <X size={18} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
-      </View>
+          </Pressable>
+        </HStack>
+      </Box>
     </Animated.View>
   );
 }
@@ -185,10 +200,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     };
 
     setToasts((prev) => {
-      // Limit to 3 toasts max
+      // Limit to 2 toasts max
       const updated = [...prev, newToast];
-      if (updated.length > 3) {
-        return updated.slice(-3);
+      if (updated.length > 2) {
+        return updated.slice(-2);
       }
       return updated;
     });
@@ -233,27 +248,23 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={contextValue}>
       {children}
       {/* Toast Container */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 9999,
-          pointerEvents: 'box-none',
-        }}
+      <Box
+        position="absolute"
+        top={0}
+        left={0}
+        right={0}
+        zIndex={9999}
+        pointerEvents="box-none"
       >
         {toasts.map((toast, index) => (
-          <View
+          <Box
             key={toast.id}
-            style={{
-              marginTop: index * 80, // Stack toasts vertically
-            }}
+            mt={index * 70}
           >
             <Toast toast={toast} onHide={hideToast} />
-          </View>
+          </Box>
         ))}
-      </View>
+      </Box>
     </ToastContext.Provider>
   );
 }

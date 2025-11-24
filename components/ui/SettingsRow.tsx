@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, HStack, Text } from '@gluestack-ui/themed';
+import { Pressable, HStack, Text, Box } from '@gluestack-ui/themed';
 import { ChevronRight } from 'lucide-react-native';
-import { colors, space } from '@/theme/tokens';
+import { colors, space, radii } from '@/theme/tokens';
 import type { LucideIcon } from 'lucide-react-native';
 
 interface SettingsRowProps {
@@ -15,7 +15,7 @@ interface SettingsRowProps {
 
 /**
  * SettingsRow - Navigation row for settings screens
- * Includes optional icon, label, value, and chevron
+ * Production-grade with icon containers, proper touch targets, and spacing
  */
 export const SettingsRow: React.FC<SettingsRowProps> = ({
   icon: Icon,
@@ -29,7 +29,9 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
     <Pressable
       onPress={onPress}
       disabled={isDisabled || !onPress}
-      py="$4"
+      py={space.md}
+      px={space.sm}
+      minHeight={48}
       opacity={isDisabled ? 0.5 : 1}
       sx={{
         ':active': {
@@ -37,9 +39,21 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
         },
       }}
     >
-      <HStack space="$4" alignItems="center" justifyContent="space-between">
-        <HStack space="$4" alignItems="center" flex={1}>
-          {Icon && <Icon color={destructive ? colors.error : colors.textSecondary} size={20} />}
+      <HStack space="md" alignItems="center" justifyContent="space-between">
+        <HStack space="md" alignItems="center" flex={1}>
+          {Icon && (
+            <Box
+              width={40}
+              height={40}
+              borderRadius={radii.full}
+              bg={destructive ? colors.errorLight : colors.surfaceMuted}
+              alignItems="center"
+              justifyContent="center"
+              flexShrink={0}
+            >
+              <Icon color={destructive ? colors.error : colors.textSecondary} size={22} />
+            </Box>
+          )}
           <Text
             color={destructive ? colors.error : colors.textPrimary}
             fontSize="$md"
@@ -49,7 +63,7 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
             {label}
           </Text>
         </HStack>
-        <HStack space="$2" alignItems="center">
+        <HStack space="xs" alignItems="center">
           {value && (
             <Text
               color={colors.textSecondary}

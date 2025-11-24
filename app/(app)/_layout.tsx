@@ -71,6 +71,20 @@ export default function AppLayout() {
           ),
         }}
       />
+
+      {/* Hide detail screens from tab bar */}
+      <Tabs.Screen
+        name="chats/[id]"
+        options={{
+          href: null, // Hides from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="analysis/[id]"
+        options={{
+          href: null, // Hides from tab bar
+        }}
+      />
     </Tabs>
   );
 }

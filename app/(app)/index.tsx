@@ -164,34 +164,39 @@ export default function HomeScreen() {
         />
 
         <VStack space="lg" px={space.lg} py={space.lg}>
-          {/* Offline Banner */}
-          {!isOnline && (
-            <InlineNotice
-              type="warning"
-              message="You're offline. Connect to the internet to create ideas."
-            />
-          )}
+          {/* Notice Banners */}
+          {(!isOnline || (!isPro && usage && usage.remainingSessions !== null && usage.remainingSessions <= 1) || errors.general) && (
+            <VStack space="md">
+              {/* Offline Banner */}
+              {!isOnline && (
+                <InlineNotice
+                  type="warning"
+                  message="You're offline. Connect to the internet to create ideas."
+                />
+              )}
 
-          {/* Usage Notice for Free Users */}
-          {!isPro && usage && usage.remainingSessions !== null && usage.remainingSessions <= 1 && (
-            <InlineNotice
-              type="warning"
-              title="Running Low on Ideas"
-              message={`You have ${usage.remainingSessions} idea session${usage.remainingSessions !== 1 ? 's' : ''} left. Upgrade to Pro for unlimited ideas!`}
-              action={{
-                label: 'Upgrade Now',
-                onPress: () => router.push('/(app)/upgrade'),
-              }}
-            />
-          )}
+              {/* Usage Notice for Free Users */}
+              {!isPro && usage && usage.remainingSessions !== null && usage.remainingSessions <= 1 && (
+                <InlineNotice
+                  type="warning"
+                  title="Running Low on Ideas"
+                  message={`You have ${usage.remainingSessions} idea session${usage.remainingSessions !== 1 ? 's' : ''} left. Upgrade to Pro for unlimited ideas!`}
+                  action={{
+                    label: 'Upgrade Now',
+                    onPress: () => router.push('/(app)/upgrade'),
+                  }}
+                />
+              )}
 
-          {/* General Error */}
-          {errors.general && (
-            <InlineNotice
-              type="error"
-              message={errors.general}
-              onDismiss={() => setErrors({ ...errors, general: '' })}
-            />
+              {/* General Error */}
+              {errors.general && (
+                <InlineNotice
+                  type="error"
+                  message={errors.general}
+                  onDismiss={() => setErrors({ ...errors, general: '' })}
+                />
+              )}
+            </VStack>
           )}
 
           {/* Main Idea Creation Card */}
@@ -224,7 +229,11 @@ export default function HomeScreen() {
                 >
                   Category
                 </Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingRight: space.lg }}
+                >
                   <HStack space="xs">
                     {CATEGORIES.map((cat) => (
                       <SelectableChip

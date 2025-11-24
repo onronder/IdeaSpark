@@ -39,10 +39,11 @@ export const HeaderGradient: React.FC<HeaderGradientProps> = ({
         }}
       >
         <HStack alignItems="center" justifyContent="space-between">
-          <VStack flex={1} space={space.xxs}>
+          <VStack flex={1} space="sm">
             <Text
               color={colors.textSecondary}
               fontSize="$sm"
+              lineHeight={20}
             >
               {greeting},
             </Text>
@@ -50,6 +51,9 @@ export const HeaderGradient: React.FC<HeaderGradientProps> = ({
               color={colors.textPrimary}
               fontSize="$3xl"
               fontWeight="700"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              lineHeight={36}
             >
               {name}
             </Text>
@@ -58,6 +62,9 @@ export const HeaderGradient: React.FC<HeaderGradientProps> = ({
                 color={colors.textSecondary}
                 fontSize="$sm"
                 mt="$2"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                lineHeight={20}
               >
                 {usageText}
               </Text>

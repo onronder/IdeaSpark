@@ -23,7 +23,7 @@ export const SelectableChip: React.FC<SelectableChipProps> = ({
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
-      px={space.md}
+      px={space.sm}
       py={space.xs}
       mr={space.xs}
       mb={space.xs}
@@ -32,6 +32,7 @@ export const SelectableChip: React.FC<SelectableChipProps> = ({
       borderColor={active ? colors.brand[300] : colors.borderMuted}
       bg={active ? colors.brand[50] : colors.surface}
       opacity={isDisabled ? 0.5 : 1}
+      flexShrink={0}
       sx={{
         ':active': {
           transform: [{ scale: 0.96 }],

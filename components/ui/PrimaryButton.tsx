@@ -51,6 +51,9 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
         color={variant === 'solid' ? '#FFFFFF' : colors.brand[700]}
         fontWeight="600"
         fontSize={sizeStyles[size].fontSize}
+        textAlign="center"
+        numberOfLines={1}
+        ellipsizeMode="tail"
       >
         {children}
       </ButtonText>

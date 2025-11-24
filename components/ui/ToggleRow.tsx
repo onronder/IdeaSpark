@@ -1,6 +1,6 @@
 import React from 'react';
-import { HStack, VStack, Text, Switch } from '@gluestack-ui/themed';
-import { colors, space } from '@/theme/tokens';
+import { HStack, VStack, Text, Switch, Box } from '@gluestack-ui/themed';
+import { colors, space, radii } from '@/theme/tokens';
 import type { LucideIcon } from 'lucide-react-native';
 
 interface ToggleRowProps {
@@ -14,7 +14,7 @@ interface ToggleRowProps {
 
 /**
  * ToggleRow - Settings row with toggle switch
- * For boolean preferences and feature toggles
+ * Production-grade with icon containers matching SettingsRow
  */
 export const ToggleRow: React.FC<ToggleRowProps> = ({
   icon: Icon,
@@ -25,21 +25,33 @@ export const ToggleRow: React.FC<ToggleRowProps> = ({
   isDisabled = false,
 }) => {
   return (
-    <HStack py={space.md} space={space.md} alignItems="center" justifyContent="space-between">
-      <HStack space={space.md} alignItems="center" flex={1}>
-        {Icon && <Icon color={colors.textSecondary} size={20} />}
-        <VStack flex={1} space={space.xxs}>
+    <HStack py={space.md} space="md" alignItems="center" justifyContent="space-between" minHeight={48}>
+      <HStack space="md" alignItems="center" flex={1}>
+        {Icon && (
+          <Box
+            width={40}
+            height={40}
+            borderRadius={radii.full}
+            bg={colors.surfaceMuted}
+            alignItems="center"
+            justifyContent="center"
+            flexShrink={0}
+          >
+            <Icon color={colors.textSecondary} size={22} />
+          </Box>
+        )}
+        <VStack flex={1} space="xxs">
           <Text
             color={colors.textPrimary}
-            fontSize={16}
-            fontWeight="500"
+            fontSize="$md"
+            fontWeight="$medium"
           >
             {label}
           </Text>
           {description && (
             <Text
               color={colors.textSecondary}
-              fontSize={13}
+              fontSize="$sm"
               lineHeight={18}
             >
               {description}

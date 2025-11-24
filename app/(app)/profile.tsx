@@ -155,7 +155,13 @@ export default function ProfileScreen() {
 
           {/* Account Section */}
           <VStack space="xs">
-            <Text color={colors.textPrimary} fontSize="$sm" fontWeight="$semibold" px={space.xs}>
+            <Text
+              color={colors.textPrimary}
+              fontSize="$md"
+              fontWeight="$bold"
+              px={space.xs}
+              style={{ letterSpacing: 0.5 }}
+            >
               ACCOUNT
             </Text>
             <SectionCard noPadding>
@@ -192,47 +198,53 @@ export default function ProfileScreen() {
 
           {/* Preferences Section */}
           <VStack space="xs">
-            <Text color={colors.textPrimary} fontSize="$sm" fontWeight="$semibold" px={space.xs}>
+            <Text
+              color={colors.textPrimary}
+              fontSize="$md"
+              fontWeight="$bold"
+              px={space.xs}
+              style={{ letterSpacing: 0.5 }}
+            >
               PREFERENCES
             </Text>
             <SectionCard noPadding>
-              <VStack>
-                <Box px={space.md}>
-                  <ToggleRow
-                    icon={Moon}
-                    label="Dark Mode"
-                    description="Switch between light and dark themes"
-                    value={darkMode}
-                    onValueChange={handleDarkModeToggle}
-                  />
-                </Box>
+              <VStack px={space.md}>
+                <ToggleRow
+                  icon={Moon}
+                  label="Dark Mode"
+                  description="Switch between light and dark themes"
+                  value={darkMode}
+                  onValueChange={handleDarkModeToggle}
+                />
                 <Divider bg={colors.borderMuted} />
-                <Box px={space.md}>
-                  <ToggleRow
-                    icon={Bell}
-                    label="Push Notifications"
-                    description="Receive notifications about your ideas"
-                    value={notifications}
-                    onValueChange={setNotifications}
-                  />
-                </Box>
+                <ToggleRow
+                  icon={Bell}
+                  label="Push Notifications"
+                  description="Receive notifications about your ideas"
+                  value={notifications}
+                  onValueChange={setNotifications}
+                />
                 <Divider bg={colors.borderMuted} />
-                <Box px={space.md}>
-                  <ToggleRow
-                    icon={Mail}
-                    label="Marketing Emails"
-                    description="Receive tips and product updates"
-                    value={marketingEmails}
-                    onValueChange={setMarketingEmails}
-                  />
-                </Box>
+                <ToggleRow
+                  icon={Mail}
+                  label="Marketing Emails"
+                  description="Receive tips and product updates"
+                  value={marketingEmails}
+                  onValueChange={setMarketingEmails}
+                />
               </VStack>
             </SectionCard>
           </VStack>
 
           {/* Support Section */}
           <VStack space="xs">
-            <Text color={colors.textPrimary} fontSize="$sm" fontWeight="$semibold" px={space.xs}>
+            <Text
+              color={colors.textPrimary}
+              fontSize="$md"
+              fontWeight="$bold"
+              px={space.xs}
+              style={{ letterSpacing: 0.5 }}
+            >
               SUPPORT
             </Text>
             <SectionCard noPadding>
@@ -258,7 +270,13 @@ export default function ProfileScreen() {
 
           {/* Danger Zone */}
           <VStack space="xs">
-            <Text color={colors.textPrimary} fontSize="$sm" fontWeight="$semibold" px={space.xs}>
+            <Text
+              color={colors.textPrimary}
+              fontSize="$md"
+              fontWeight="$bold"
+              px={space.xs}
+              style={{ letterSpacing: 0.5 }}
+            >
               DANGER ZONE
             </Text>
             <SectionCard noPadding>
