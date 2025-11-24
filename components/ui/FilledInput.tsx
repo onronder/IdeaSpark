@@ -37,7 +37,7 @@ export const FilledInput: React.FC<FilledInputProps> = ({
   ...props
 }) => {
   return (
-    <VStack space={space.xs}>
+    <VStack space="xs">
       {label && (
         <Text
           color={colors.textPrimary}
@@ -58,6 +58,7 @@ export const FilledInput: React.FC<FilledInputProps> = ({
         borderColor={error ? colors.error : colors.borderMuted}
         borderRadius={radii.md}
         isDisabled={isDisabled}
+        h={48}
         sx={{
           ':focus': {
             borderColor: error ? colors.error : colors.brand[500],
@@ -83,6 +84,7 @@ export const FilledInput: React.FC<FilledInputProps> = ({
           fontSize="$md"
           px="$4"
           py="$3"
+          height={48}
         />
       </Input>
       {error && (

@@ -58,6 +58,7 @@ const envSchema = z.object({
 
   // Analytics
   AMPLITUDE_API_KEY: z.string().optional(),
+  EXPO_PUBLIC_AMPLITUDE_API_KEY: z.string().optional(),
 
   // Supabase Auth
   SUPABASE_JWT_SECRET: z.string().optional(),
@@ -179,7 +180,9 @@ export const config = {
 
   // Analytics
   analytics: {
-    amplitudeApiKey: env.AMPLITUDE_API_KEY,
+    // Prefer the Expo-style public key name so the same
+    // variable can be used consistently across mobile and backend.
+    amplitudeApiKey: env.EXPO_PUBLIC_AMPLITUDE_API_KEY || env.AMPLITUDE_API_KEY,
   },
 
   // Supabase

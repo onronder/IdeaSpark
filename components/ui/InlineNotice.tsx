@@ -66,14 +66,15 @@ export const InlineNotice: React.FC<InlineNoticeProps> = ({
       borderRadius={radii.md}
       p={space.md}
     >
-      <HStack space={space.sm} alignItems="flex-start">
+      <HStack space="sm" alignItems="flex-start">
         <Icon color={iconColor} size={20} style={{ marginTop: 2 }} />
-        <VStack flex={1} space={space.xxs}>
+        <VStack flex={1} space="xxs">
           {title && (
             <Text
               color={textColor}
               fontSize="$sm"
               fontWeight="$semibold"
+              flexShrink={1}
             >
               {title}
             </Text>
@@ -81,6 +82,7 @@ export const InlineNotice: React.FC<InlineNoticeProps> = ({
           <Text
             color={textColor}
             fontSize="$sm"
+            flexShrink={1}
           >
             {message}
           </Text>
@@ -98,7 +100,7 @@ export const InlineNotice: React.FC<InlineNoticeProps> = ({
           )}
         </VStack>
         {onDismiss && (
-          <Pressable onPress={onDismiss}>
+          <Pressable onPress={onDismiss} flexShrink={0}>
             <X color={textColor} size={18} />
           </Pressable>
         )}

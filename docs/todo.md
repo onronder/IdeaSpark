@@ -209,9 +209,9 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
 6. **User Messaging – Billing & Upgrades**
    - Define consistent copy for upgrade funnel:
      - Success banner: `"You're Pro now! Enjoy unlimited AI replies and priority responses."`
-     - Payment processing info: `"Securely redirecting to our payment partner…"`
-     - Payment failure error: `"Payment didn’t complete. No charges were made—please try again or use a different method."`
-     - Cancellation confirmation: `"Your subscription will remain active until {{date}}. You can reactivate anytime."`
+     - Payment processing info: `"Processing your purchase securely via the App Store / Google Play…"`
+     - Payment failure error: `"Purchase didn’t complete. No charges were made—please try again or use a different method."`
+      - Cancellation confirmation: `"Your subscription will remain active until {{date}}. You can reactivate anytime."`
    - Implement inline hints on upgrade screen reminding users of remaining free replies and benefits.
    - Surface plan-change notifications via push/email templates referenced here for consistency.
 7. **Testing & CI/CD Focus**
@@ -286,29 +286,65 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
 
 ## Phase 8 – Analytics, CAC & Usage Reporting
 
-1. **Analytics SDK Integration**
-   - Install Amplitude or Segment SDK for Expo. Initialize in `AppProvider`, respect user consent.
-   - Replace stubbed `useAnalytics` with real tracker logging: auth events, idea submissions, AI replies, errors, upgrade views/purchases.
-2. **Marketing Attribution**
-   - Capture `utm_*` params via inbound links or referral codes, store in AsyncStorage, send with registration payload, persist in `MarketingAttribution` table.
-   - Build admin query/report summarizing new users per campaign vs manual marketing spend input (CSV or admin UI).
-3. **Per-User AI Cost Dashboard**
-   - Backend endpoint `GET /admin/usage` returning aggregated token + cost per user/session.
-   - Create simple internal dashboard (could be Next.js page or admin API consumed by BI tool) showing cost vs revenue per plan tier, flagging outliers.
-4. **Alerts & Budgets**
-   - Configure OpenAI hard limits + email alerts.
-   - Add backend cron to monitor daily spend; send Slack/email alert if cost spikes.
-5. **Error Logging & Data Quality Monitoring**
-   - Log analytics dispatch failures (e.g., network errors) with payload metadata so events can be replayed if needed.
-   - Add automated checks comparing analytics counts vs database truth to catch discrepancies; alert when deltas exceed thresholds.
-   - Instrument admin dashboards to report their own query errors and send Sentry events when aggregation fails.
-6. **Testing & CI/CD Focus**
-   - Unit tests for analytics wrapper ensuring events include required properties; mock SDK.
-   - Data validation tests for marketing attribution ETL (ensure campaign IDs stored and retrievable).
-   - Add CI job that runs lightweight seed + aggregation query to ensure admin reporting endpoints (`/admin/usage`) function before deploys.
-7. **iOS & Android Verification**
-   - Validate analytics events fire with correct properties on both iOS and Android (use native debuggers to inspect payloads).
-   - Confirm attribution parameters persist across cold starts on each platform (especially Android where intent extras differ).
+> Status: **Amplitude-based analytics are implemented on both mobile and backend; work remaining is mostly around attribution, dashboards, and deeper QA.**
+
+1. **Client & Backend Analytics Integration (Amplitude) – Implemented**
+   - Mobile:
+     - `services/analyticsService.ts` wraps `@amplitude/analytics-react-native` with consent-aware initialization, `trackEvent`, `identifyUser`, `setUserGroup`, `trackRevenue`, and helpers (`trackSignup`, `trackLogin`, `trackIdeaCreated`, `trackMessageSent`, `trackUpgradeViewed`, `trackSubscriptionPurchased`, `trackError`).
+     - `hooks/useAnalytics.ts` keeps analytics in sync with `SupabaseAuthContext`, initializes on auth changes, and exposes tracking helpers plus `setUserConsent`/`resetAnalytics`.
+     - Screens wired:
+       - Auth (`app/(auth)/index.tsx`): `trackLogin('email')`, `trackSignup({ method: 'email' })`.
+       - Home (`app/(app)/index.tsx`): `trackIdeaCreated({ ideaId, category })` after successful idea creation.
+       - Chat (`app/(app)/chats/[id].tsx`): `trackMessageSent({ ideaId, messageLength })` on successful send.
+       - Upgrade (`app/(app)/upgrade.tsx`): `trackUpgradeViewed('upgrade_screen')` when screen mounts; subscription purchases are tracked from the IAP service after backend receipt validation.
+     - Profile (`app/(app)/profile.tsx`) exposes a “Usage analytics” toggle backed by AsyncStorage (`analyticsConsent`) and `setUserConsent`, so tracking respects user opt-in.
+   - Backend:
+     - `server/src/services/analytics.service.ts` uses `@amplitude/node` to log events, identify users, capture marketing attribution, and track revenue while persisting events to `analytics_events`.
+     - `server/src/routes/analytics.routes.ts` + `server/src/controllers/analytics.controller.ts` expose:
+       - Public event ingestion (`POST /api/v1/analytics/track`).
+       - Admin analytics: `/api/v1/analytics/admin/usage`, `/admin/campaigns`, `/admin/cohorts/:cohortMonth`, `/admin/cost-trend`, `/admin/ltv`.
+       - User analytics: `/api/v1/analytics/user/:userId`.
+     - Server startup (`server/src/index.ts`) initializes the analytics service when `AMPLITUDE_API_KEY` is set.
+
+2. **Event Coverage & Consent – In Progress**
+   - Core product events are wired from the mobile app as described above, and will only fire when:
+     - The device has `analyticsConsent === 'true'` in AsyncStorage, and
+     - Amplitude has been initialized.
+   - Remaining work:
+     - Add `trackError` calls to the central error handler / key error boundaries so high-value failures are visible in Amplitude in addition to Sentry.
+     - Optionally add a first-run analytics consent prompt (before the Profile toggle is seen), wired to the same `analyticsConsent` flag.
+
+3. **Marketing Attribution – Backend Ready, Client Wiring TODO**
+   - Backend:
+     - `analytics.service.captureMarketingAttribution` and `MarketingAttribution` table are ready to store UTM source/medium/campaign and basic referrer/landing metadata.
+   - Next steps:
+     - On mobile, capture `utm_*` query params from inbound links (e.g. marketing deep links) and persist to AsyncStorage until sign-up.
+     - Send these fields to a lightweight backend endpoint (or reuse `/analytics/track`) on sign-up, so `captureMarketingAttribution` can persist first-touch attribution.
+     - Extend admin analytics to summarize new users per campaign vs manual spend inputs.
+
+4. **Per-User AI Cost & Revenue Reporting – Implemented (Backend), Dashboard TODO**
+   - Backend:
+     - `/api/v1/analytics/admin/usage` and related endpoints aggregate token usage, cost, and subscription revenue per user/segment.
+   - Next steps:
+     - Build a simple internal dashboard (could be a small web app or external BI integration) that consumes these endpoints to visualize cost vs revenue per plan tier and highlight outliers.
+
+5. **Alerts, Budgets & Data Quality – Not Yet Implemented**
+   - Configure OpenAI hard limits + email alerts in the OpenAI dashboard.
+   - Add a backend cron/worker to monitor daily spend and send Slack/email alerts when usage or error rates spike.
+   - Log analytics dispatch failures (e.g., Amplitude network errors) with enough metadata to allow replay if needed.
+   - Add periodic checks comparing key event counts (ideas created, messages sent) between analytics tables and primary tables to spot discrepancies.
+
+6. **Testing & CI/CD Focus – TODO**
+   - Unit tests for the analytics wrapper on mobile (mocking the Amplitude SDK) to ensure events include required properties and respect the consent flag.
+   - Backend tests around `analytics.service.trackEvent` and admin endpoints to ensure they handle typical and edge-case payloads.
+   - CI job that runs lightweight aggregation queries (`/api/v1/analytics/admin/usage`) against a seeded DB to catch regressions before deploys.
+
+7. **iOS & Android Verification – TODO**
+   - Manually verify analytics events in Amplitude from both iOS and Android:
+     - Auth, idea creation, message send, upgrade viewed, and subscription purchase flows.
+   - Confirm that:
+     - Events stop when analytics is disabled from the Profile toggle.
+     - Consent and attribution state persist across cold starts on both platforms.
 
 ## Phase 9 – Cloud Deployment & Operations
 

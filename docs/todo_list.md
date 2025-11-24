@@ -1,50 +1,80 @@
 # IdeaSpark UI/UX Alignment – Current Status
 
-This file reflects the *actual* state of the UI/UX implementation as of this audit and is intended to stay in sync with the codebase, not with previous AI-generated summaries.
+This file reflects the *actual* state of the UI/UX implementation as of this audit and is intended to stay in sync with the codebase, not with earlier gradient/glassmorphism design docs.
 
-## Completed UI/UX Tasks
+## Completed UI/UX Work (Current Code)
 
-- Centralized gradient definitions in `constants/gradients.ts` with `getBackgroundGradient()` and `getOrbGradient()`.
-- Refactored `components/ui/GradientBackground.tsx` to use centralized gradients.
-- Refactored `components/ui/AnimatedOrb.tsx` to support `variant` and use centralized orb gradients while still accepting custom `colors`.
-- Fully refactored `app/(auth)/index.tsx` to:
-  - Use `GradientBackground` for both main and forgot-password flows.
-  - Use `GlassCard` for the primary auth form container.
-  - Replace static orb with `AnimatedOrb` (variant-based).
-  - Use `SafeFormControl`, `SafeInput`, `SafeButton`, and `SafeAlert` for all auth inputs/buttons/alerts.
-  - Add accessibility labels/roles/hints for buttons, toggles, and links.
-  - Apply `useSafeAreaInsets()` for top padding.
-- Consolidated auth loading state:
-  - `app/_layout.tsx` now owns the single loading UI via `SplashScreen` using `GradientBackground` + `AnimatedOrb`.
-  - Removed auth-loading UI from `app/index.tsx`, `app/(auth)/_layout.tsx`, and `app/(app)/_layout.tsx`.
+- **Simplified, app-like visual language**
+  - Login (`app/(auth)/index.tsx`), Home (`app/(app)/index.tsx`), Chat (`app/(app)/chats/[id].tsx`), Profile (`app/(app)/profile.tsx`), and Upgrade (`app/(app)/upgrade.tsx`) now use flat, card-based layouts rather than full-screen gradients and heavy glassmorphism.
+  - Shared primitives in `components/ui` (`SectionCard`, `FilledInput`, `FilledTextarea`, `PrimaryButton`, `SelectableChip`, `InlineNotice`, `UsagePill`, `SettingsRow`, `ToggleRow`, `ListItem`, etc.) provide a consistent, calm, Bear-like feel.
+
+- **Auth flow**
+  - Single, focused auth screen (`app/(auth)/index.tsx`) with:
+    - One primary card (`SectionCard`) for all modes (login / signup / forgot).
+    - Clean inputs (`FilledInput`) with clear validation and inline errors.
+    - A single primary action (`PrimaryButton`) and lightweight text links for mode switching.
+  - Auth is wired to Supabase Auth and analytics:
+    - `trackLogin('email')` and `trackSignup({ method: 'email' })` are called on successful auth.
+
+- **Home / Idea creation**
+  - Home uses a simple header (`HeaderGradient`) plus one main creation card:
+    - Category selection via `SelectableChip` pills.
+    - Title and description via `FilledInput`/`FilledTextarea`.
+    - One clear CTA: “Refine My Idea with AI ✨”.
+  - Usage + upgrade prompts are surfaced via `UsagePill` and `InlineNotice`, avoiding visual clutter.
+
+- **Chat**
+  - Chat detail screen displays the idea summary in a `SectionCard`, with clean `MessageBubble` components for user/assistant roles and a subtle typing indicator (`TypingDots`).
+  - Input area uses a minimal `FilledTextarea` + `PrimaryButton`, with quota and connectivity notices via `InlineNotice`.
+
+- **Profile**
+  - Profile screen groups content into `SectionCard`s using `SettingsRow` and `ToggleRow` for:
+    - Account (manage subscription / upgrade, change password placeholder).
+    - Preferences (dark mode placeholder, push notifications, marketing emails, usage analytics).
+    - Support and danger zone sections.
+  - “Usage analytics” toggle is wired to the analytics consent flag (`analyticsConsent` in AsyncStorage) through `useAnalytics.setUserConsent`.
+
+- **Upgrade / IAP**
+  - Upgrade screen uses:
+    - A compact hero (`HeaderGradient`) plus `SegmentedTabs` for Monthly vs Yearly.
+    - A single pricing `SectionCard` with a concise feature list and strong primary CTA.
+    - A “Free vs Pro” comparison table built with the same `SectionCard` + tokenized typography.
+  - IAP flows are implemented via `services/iapService` and backend subscription APIs; UI copy reflects native App Store / Google Play purchases (no web checkout language).
 
 ## UI/UX Tasks Still Open or Partially Done
 
-- Verify “all screens use GradientBackground”:
-  - Most primary screens (home, chats list/detail, profile, upgrade, auth, splash) use `GradientBackground`.
-  - Action: **Confirm any new/auxiliary screens also use `GradientBackground` or intentionally opt out**, and update `docs/UX_UI_REDESIGN_SUMMARY.md` to reflect reality rather than blanket ✅ claims.
-- Verify “all cards use GlassCard”:
-  - Auth, home, chats list/detail, profile, and upgrade now rely on `GlassCard` for the main card surfaces.
-  - Action: **Check for any remaining raw `Box`-based glassmorphism or `Card` usage in new code and migrate to `GlassCard` if the intent is glassmorphism.**
-- SafeGluestack adoption beyond auth:
-  - `SafeButton`, `SafeInput`, `SafeFormControl`, and `SafeAlert` are used in the auth screen only.
-  - Action: **Decide whether SafeGluestack is a global pattern**; if yes, create a follow-up task to migrate critical flows (e.g., upgrade, profile forms) to safe components.
-- Accessibility & WCAG coverage:
-  - Auth screen now has solid accessibility labeling; other screens are partially labeled but not fully audited.
-  - Action: **Perform a real accessibility pass** (TalkBack/VoiceOver) on home, chats, upgrade, profile and update labels/hints where needed. Update `UX_UI_REDESIGN_SUMMARY.md` to reflect actual coverage.
-- Testing/documentation alignment:
-  - `docs/UX_UI_REDESIGN_SUMMARY.md` and prior AI messages still claim global ✅s (e.g., “All screens use GradientBackground”, “All cards use GlassCard”, “Accessibility labels added”) that are now *partially but not universally* true.
-  - Action: **Edit `docs/UX_UI_REDESIGN_SUMMARY.md` to distinguish implemented vs planned items and remove overconfident checklist entries.**
+- **Design documentation drift**
+  - `UI_REDESIGN_SUMMARY.md` still describes a gradient-heavy, glassmorphism-first design that no longer matches the app.
+  - Action: **Rewrite `UI_REDESIGN_SUMMARY.md` to describe the current flat, card-based system and the `components/ui` primitives, or clearly mark the old design as deprecated.**
+
+- **Dark mode**
+  - `ThemeContext` exists but Profile’s “Dark Mode” toggle is a placeholder (shows a “Coming Soon” toast and does not switch themes).
+  - Action: **Implement real dark mode using the existing token system (`theme/tokens.ts`) and hook Profile’s toggle to the actual theme switch.**
+
+- **Accessibility**
+  - Auth has reasonably good labeling and error messaging; other screens are only partially labeled.
+  - Action: **Perform a full VoiceOver/TalkBack pass on Home, Chat, Upgrade, and Profile; add `accessibilityRole`, `accessibilityLabel`, and hints where missing.**
+
+- **Visual consistency and polish**
+  - New screens mostly use the `components/ui` set, but some Gluestack primitives (`Box`, `Text`, `Pressable`) still mix ad‑hoc props instead of shared styles.
+  - Action: **Standardize typography, spacing, and colors via tokens and the `ui` primitives (e.g., ensure headings use the same sizes/weights across Home, Chat, Profile, Upgrade).**
+
+- **Micro-interactions**
+  - Press states and animations are minimal compared to the original design intent.
+  - Action: **Introduce subtle, consistent interactions (press feedback on primary buttons, chips, list items) without reintroducing visual noise.**
 
 ## Next Steps for Alignment
 
-1. **Run through the app on device/simulator** and confirm visual + behavioral consistency for:
-   - Gradients, orbs, and glassmorphism.
-   - Auth flow (including forgot password) with new SafeGluestack components.
-2. **Update `docs/UX_UI_REDESIGN_SUMMARY.md`** to:
-   - Reflect centralized gradients and SafeGluestack usage.
-   - Replace blanket ✅ items with accurate descriptions of where patterns are applied.
-3. **Decide on SafeGluestack scope**:
-   - If kept, create follow-up tasks to migrate other key flows.
-   - If not, document that it is intentionally limited to auth.
+1. **End-to-end UX review on device**
+   - Run through auth → idea creation → chat → profile → upgrade on iOS and Android.
+   - Log any visual or behavioral inconsistencies (spacing, typography, button hierarchy).
+
+2. **Update design docs**
+   - Bring `UI_REDESIGN_SUMMARY.md` in line with the current, calmer UI and the `components/ui` design system.
+   - Keep this `docs/todo_list.md` in sync as the source of truth for what is actually implemented.
+
+3. **Finalize core UX polish**
+   - Implement working dark mode.
+   - Complete accessibility pass.
+   - Add a small, consistent set of micro-interactions (press feedback, maybe light haptics on key actions) to make the app feel premium without becoming visually noisy.
 

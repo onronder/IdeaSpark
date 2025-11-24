@@ -14,7 +14,7 @@ interface PrimaryButtonProps {
 
 /**
  * PrimaryButton - Main CTA button with brand styling
- * Follows 2025 UI redesign principles with rounded corners and generous padding
+ * Production-grade with proper text rendering and auto-height
  */
 export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   children,
@@ -25,10 +25,10 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   size = 'lg',
   ...props
 }) => {
-  const sizeStyles = {
-    sm: { paddingVertical: 8, paddingHorizontal: 16, fontSize: 14 },
-    md: { paddingVertical: 12, paddingHorizontal: 20, fontSize: 16 },
-    lg: { paddingVertical: 14, paddingHorizontal: 24, fontSize: 16 },
+  const sizeProps = {
+    sm: { py: 8, px: 16, fontSize: 14 },
+    md: { py: 12, px: 20, fontSize: 16 },
+    lg: { py: 14, px: 24, fontSize: 16 },
   };
 
   return (
@@ -40,20 +40,21 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       borderColor={variant === 'outline' ? colors.brand[500] : undefined}
       borderRadius={radii.xl}
       opacity={isDisabled ? 0.5 : 1}
-      style={{
-        paddingVertical: sizeStyles[size].paddingVertical,
-        paddingHorizontal: sizeStyles[size].paddingHorizontal,
-      }}
+      w="100%"
+      h="auto"
+      minHeight={48}
+      alignItems="center"
+      justifyContent="center"
+      py={sizeProps[size].py}
+      px={sizeProps[size].px}
       {...props}
     >
       {isLoading && <ButtonSpinner color={variant === 'solid' ? '#FFFFFF' : colors.brand[500]} />}
       <ButtonText
         color={variant === 'solid' ? '#FFFFFF' : colors.brand[700]}
         fontWeight="600"
-        fontSize={sizeStyles[size].fontSize}
+        fontSize={sizeProps[size].fontSize}
         textAlign="center"
-        numberOfLines={1}
-        ellipsizeMode="tail"
       >
         {children}
       </ButtonText>

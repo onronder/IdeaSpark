@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { analyticsService } from '@/services/analyticsService';
-import { useAuth } from './useAuth';
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 /**
  * Hook for analytics tracking
@@ -8,28 +8,37 @@ import { useAuth } from './useAuth';
 export function useAnalytics() {
   const { user } = useAuth();
 
-  // Initialize analytics when user changes
+  // Initialize analytics and identify user when auth state changes
   useEffect(() => {
-    if (user) {
-      analyticsService.identifyUser({
-        userId: user.id,
-        properties: {
-          email: user.email,
-          name: user.name,
-          subscription_plan: user.subscriptionPlan || 'FREE',
-          email_verified: user.emailVerified,
-        },
-      });
+    const init = async () => {
+      await analyticsService.initialize({ userId: user?.id });
 
-      // Set subscription plan group
-      if (user.subscriptionPlan) {
-        analyticsService.setUserGroup({
-          groupType: 'subscription_plan',
-          groupName: user.subscriptionPlan,
+      if (user) {
+        await analyticsService.identifyUser({
+          userId: user.id,
+          properties: {
+            email: user.email,
+            name: user.name,
+            subscription_plan: user.subscriptionPlan || 'FREE',
+            email_verified: user.emailVerified,
+          },
         });
+
+        if (user.subscriptionPlan) {
+          await analyticsService.setUserGroup({
+            groupType: 'subscription_plan',
+            groupName: user.subscriptionPlan,
+          });
+        }
+      } else {
+        await analyticsService.reset();
       }
-    }
-  }, [user]);
+    };
+
+    init().catch((err) => {
+      console.warn('Analytics init failed', err);
+    });
+  }, [user?.id]);
 
   // Track event
   const trackEvent = useCallback(
@@ -99,6 +108,47 @@ export function useAnalytics() {
     analyticsService.reset();
   }, []);
 
+  // Update user consent and ensure identification is in sync
+  const setUserConsent = useCallback(
+    async (consent: boolean) => {
+      try {
+        await analyticsService.setUserConsent(consent);
+
+        if (consent && user) {
+          await analyticsService.identifyUser({
+            userId: user.id,
+            properties: {
+              email: user.email,
+              name: user.name,
+              subscription_plan: user.subscriptionPlan || 'FREE',
+              email_verified: user.emailVerified,
+            },
+          });
+
+          if (user.subscriptionPlan) {
+            await analyticsService.setUserGroup({
+              groupType: 'subscription_plan',
+              groupName: user.subscriptionPlan,
+            });
+          }
+        }
+
+        if (!consent) {
+          await analyticsService.reset();
+        }
+      } catch (err) {
+        console.warn('Failed to update analytics consent', err);
+      }
+    },
+    [
+      user?.id,
+      user?.email,
+      user?.name,
+      user?.subscriptionPlan,
+      user?.emailVerified,
+    ]
+  );
+
   return {
     trackEvent,
     trackSignup,
@@ -109,5 +159,6 @@ export function useAnalytics() {
     trackSubscriptionPurchased,
     trackError,
     resetAnalytics,
+    setUserConsent,
   };
 }

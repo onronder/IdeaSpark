@@ -9,10 +9,13 @@ import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw, Sparkles } from "lucide-react-native";
 import { useLogger } from "@/hooks/useLogger";
-import { GluestackUIProvider, Box, Center, VStack, Text, Icon, Spinner } from "@gluestack-ui/themed";
+import { GluestackUIProvider, Box, Center, VStack, Text, Icon, Spinner, HStack } from "@gluestack-ui/themed";
 import { View, Text as RNText, TouchableOpacity } from "react-native";
 import { gluestackUIConfig } from "@/gluestack-ui.config";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors, space, radii, shadows } from '@/theme/tokens';
 
 // Initialize Sentry as early as possible
 initSentry();
@@ -127,6 +130,12 @@ function AppNavigator() {
   // Global notifications initialization and handlers
   // (handled via useNotifications hook using Supabase auth state)
   useNotifications();
+  // Initialize analytics and keep user identity in sync
+  const { setUserConsent } = useAnalytics();
+
+  const [showAnalyticsPrompt, setShowAnalyticsPrompt] = useState(false);
+  const [checkingConsent, setCheckingConsent] = useState(true);
+  const [updatingConsent, setUpdatingConsent] = useState(false);
 
   useEffect(() => {
     // Set user context for Sentry when user changes
@@ -142,11 +151,120 @@ function AppNavigator() {
     }
   }, [user]);
 
+  // First-run analytics consent prompt
+  useEffect(() => {
+    const checkConsent = async () => {
+      try {
+        // Only prompt once a user is signed in and no explicit choice was stored
+        if (!user) {
+          setShowAnalyticsPrompt(false);
+          setCheckingConsent(false);
+          return;
+        }
+
+        const stored = await AsyncStorage.getItem('analyticsConsent');
+        if (stored === null) {
+          setShowAnalyticsPrompt(true);
+        } else {
+          setShowAnalyticsPrompt(false);
+        }
+      } catch (err) {
+        console.warn('Failed to check analytics consent', err);
+      } finally {
+        setCheckingConsent(false);
+      }
+    };
+
+    checkConsent();
+  }, [user?.id]);
+
+  const handleConsentChoice = async (consent: boolean) => {
+    try {
+      setUpdatingConsent(true);
+      await setUserConsent(consent);
+      setShowAnalyticsPrompt(false);
+    } catch (err) {
+      console.warn('Failed to update analytics consent', err);
+    } finally {
+      setUpdatingConsent(false);
+    }
+  };
+
   if (isLoading) {
     return <SplashScreen />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Box flex={1}>
+      <Stack screenOptions={{ headerShown: false }} />
+
+      {user && showAnalyticsPrompt && !checkingConsent && (
+        <Box
+          position="absolute"
+          bottom={space.lg}
+          left={space.lg}
+          right={space.lg}
+          bg={colors.surface}
+          borderRadius={radii.lg}
+          p={space.lg}
+          style={shadows.card}
+        >
+          <VStack space="sm">
+            <Text fontSize="$lg" fontWeight="$bold" color={colors.textPrimary}>
+              Help improve IdeaSpark
+            </Text>
+            <Text fontSize="$sm" color={colors.textSecondary}>
+              Share anonymous usage analytics so we can understand which features are most helpful.
+              You can change this anytime in Profile → Usage analytics.
+            </Text>
+            <HStack justifyContent="flex-end" space="sm" mt={space.sm}>
+              <TouchableOpacity
+                onPress={() => handleConsentChoice(false)}
+                disabled={updatingConsent}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: radii.sm,
+                  borderWidth: 1,
+                  borderColor: colors.borderMuted,
+                }}
+              >
+                <RNText
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: '500',
+                  }}
+                >
+                  Not now
+                </RNText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleConsentChoice(true)}
+                disabled={updatingConsent}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: radii.sm,
+                  backgroundColor: colors.brand[500],
+                }}
+              >
+                <RNText
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: 14,
+                    fontWeight: '600',
+                  }}
+                >
+                  {updatingConsent ? 'Saving…' : 'Enable analytics'}
+                </RNText>
+              </TouchableOpacity>
+            </HStack>
+          </VStack>
+        </Box>
+      )}
+    </Box>
+  );
 }
 
 function RootLayout() {

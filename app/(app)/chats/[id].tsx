@@ -25,6 +25,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import {
   MessageBubble,
   FilledTextarea,
@@ -53,6 +54,7 @@ export default function ChatScreen() {
   const { handleError, logger } = useErrorHandler('ChatScreen');
   const { isOnline } = useNetworkStatus();
   const insets = useSafeAreaInsets();
+  const { trackMessageSent } = useAnalytics();
 
   const [inputText, setInputText] = useState('');
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
@@ -103,6 +105,11 @@ export default function ChatScreen() {
 
       if (result) {
         refetchMessages();
+
+        trackMessageSent({
+          ideaId,
+          messageLength: messageText.length,
+        });
 
         // Check if there are no replies remaining
         if (result.remainingReplies === 0 && user?.subscriptionPlan === 'FREE') {

@@ -35,6 +35,8 @@ import {
   InlineNotice,
 } from '@/components/ui';
 import { colors, space } from '@/theme/tokens';
+import { useAnalytics } from '@/hooks/useAnalytics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -42,11 +44,13 @@ export default function ProfileScreen() {
   const { colorMode } = useTheme();
   const toast = useToast();
   const { handleError, logger } = useErrorHandler('ProfileScreen');
+  const { setUserConsent } = useAnalytics();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [darkMode, setDarkMode] = useState(colorMode === 'dark');
   const [notifications, setNotifications] = useState(true);
   const [marketingEmails, setMarketingEmails] = useState(false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
 
   const isPro = user?.subscriptionPlan === 'PRO';
 
@@ -55,6 +59,17 @@ export default function ProfileScreen() {
     // Add your refresh logic here
     setTimeout(() => setIsRefreshing(false), 1000);
   };
+
+  // Load persisted analytics consent
+  React.useEffect(() => {
+    AsyncStorage.getItem('analyticsConsent')
+      .then((value) => {
+        setAnalyticsEnabled(value === 'true');
+      })
+      .catch((error) => {
+        logger.warn('Failed to load analytics consent', error);
+      });
+  }, []);
 
   const handleManageSubscription = () => {
     if (Platform.OS === 'ios') {
@@ -108,6 +123,24 @@ export default function ProfileScreen() {
       message: 'Dark mode will be available in the next update',
       duration: 3000,
     });
+  };
+
+  const handleAnalyticsToggle = async (value: boolean) => {
+    setAnalyticsEnabled(value);
+    try {
+      await setUserConsent(value);
+      toast.showToast({
+        type: 'success',
+        title: value ? 'Analytics enabled' : 'Analytics disabled',
+        message: value
+          ? 'We will use anonymized events to improve IdeaSpark.'
+          : 'Analytics tracking has been turned off for this device.',
+        duration: 3000,
+      });
+    } catch (error: any) {
+      setAnalyticsEnabled(!value);
+      handleError(error, 'Failed to update analytics preferences');
+    }
   };
 
   return (
@@ -231,6 +264,14 @@ export default function ProfileScreen() {
                   description="Receive tips and product updates"
                   value={marketingEmails}
                   onValueChange={setMarketingEmails}
+                />
+                <Divider bg={colors.borderMuted} />
+                <ToggleRow
+                  icon={Sparkles}
+                  label="Usage analytics"
+                  description="Share anonymous usage to help improve IdeaSpark"
+                  value={analyticsEnabled}
+                  onValueChange={handleAnalyticsToggle}
                 />
               </VStack>
             </SectionCard>

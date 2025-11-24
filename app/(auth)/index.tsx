@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import {
   FilledInput,
   PrimaryButton,
@@ -32,6 +33,7 @@ export default function AuthScreen() {
   const toast = useToast();
   const { handleError, logger } = useErrorHandler("AuthScreen");
   const insets = useSafeAreaInsets();
+  const { trackLogin, trackSignup } = useAnalytics();
 
   const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
   const [formData, setFormData] = useState({
@@ -94,10 +96,12 @@ export default function AuthScreen() {
       if (authMode === "login") {
         await signIn(formData.email, formData.password);
         toast.success("Welcome back!", "You're signed in");
+        trackLogin('email');
         router.replace("/(app)");
       } else if (authMode === "signup") {
         await signUp(formData.email, formData.password, formData.name);
         toast.success("Account created!", "Welcome to IdeaSpark");
+        trackSignup({ method: 'email' });
         router.replace("/(app)");
       } else if (authMode === "forgot") {
         await forgotPassword(formData.email);

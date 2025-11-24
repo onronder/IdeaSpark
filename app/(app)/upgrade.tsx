@@ -14,7 +14,6 @@ import {
   Zap,
   TrendingUp,
   Target,
-  Users,
   Check,
   X,
 } from 'lucide-react-native';
@@ -25,6 +24,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { iapService, IAPError, IAPErrorType } from '@/services/iapService';
 import { getProductId, PRICING_DISPLAY } from '@/config/iapConfig';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import {
   HeaderGradient,
   SectionCard,
@@ -41,6 +41,7 @@ export default function UpgradeScreen() {
   const { user } = useAuth();
   const toast = useToast();
   const { handleError, logger } = useErrorHandler('UpgradeScreen');
+  const { trackUpgradeViewed } = useAnalytics();
 
   const [selectedPlan, setSelectedPlan] = useState<'MONTHLY' | 'YEARLY'>('YEARLY');
   const [isLoading, setIsLoading] = useState(false);
@@ -49,6 +50,7 @@ export default function UpgradeScreen() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
 
   useEffect(() => {
+    trackUpgradeViewed('upgrade_screen');
     initializeIAP();
     checkSubscriptionStatus();
 
@@ -90,19 +92,12 @@ export default function UpgradeScreen() {
 
     try {
       const productId = getProductId(`PRO_${selectedPlan}`);
-      const result = await iapService.purchaseSubscription(productId);
-
-      if (result.success) {
-        toast.success('Welcome to Pro!', 'Your subscription is now active');
-        logger.logUserAction('purchase_completed', { plan: selectedPlan });
-        router.back();
-      } else {
-        throw new Error(result.error || 'Purchase failed');
-      }
+      await iapService.purchaseSubscription(productId);
+      logger.logUserAction('purchase_flow_started', { plan: selectedPlan });
     } catch (error: any) {
       if (error instanceof IAPError) {
         switch (error.type) {
-          case IAPErrorType.USER_CANCELLED:
+          case IAPErrorType.PURCHASE_CANCELLED:
             logger.info('User cancelled purchase');
             break;
           case IAPErrorType.PAYMENT_FAILED:
@@ -129,7 +124,7 @@ export default function UpgradeScreen() {
     try {
       const result = await iapService.restorePurchases();
 
-      if (result.restored) {
+      if (result.isActive) {
         toast.success('Purchases Restored', 'Your subscription has been restored successfully');
         await checkSubscriptionStatus();
         logger.logUserAction('restore_purchases_completed');
@@ -162,14 +157,12 @@ export default function UpgradeScreen() {
     { icon: Zap, text: "Priority response time" },
     { icon: TrendingUp, text: "Advanced analytics dashboard" },
     { icon: Target, text: "Export ideas to PDF" },
-    { icon: Users, text: "Collaborate with team members" },
   ];
 
   const comparisonData = [
     { feature: "Idea Sessions", free: "3", pro: "Unlimited" },
     { feature: "AI Replies per Session", free: "5", pro: "Unlimited" },
     { feature: "Response Time", free: "Standard", pro: "Priority" },
-    { feature: "Team Collaboration", free: false, pro: true },
     { feature: "Analytics Dashboard", free: false, pro: true },
     { feature: "Export Ideas", free: false, pro: true },
   ];
@@ -334,22 +327,22 @@ export default function UpgradeScreen() {
                     borderBottomColor={colors.borderMuted}
                   >
                     <HStack justifyContent="space-between" alignItems="center">
-                      <Text color={colors.textPrimary} fontSize="$sm" flex={1}>
+                      <Text color={colors.textPrimary} fontSize="$sm" flex={1} flexShrink={1}>
                         {item.feature}
                       </Text>
-                      <HStack space="xl" alignItems="center">
-                        <Box width={60} alignItems="center">
+                      <HStack space="xl" alignItems="center" flexShrink={0}>
+                        <Box minWidth={60} alignItems="center">
                           {typeof item.free === 'boolean' ? (
                             item.free ? <Check color={colors.success} size={20} /> : <X color={colors.textSecondary} size={20} />
                           ) : (
-                            <Text color={colors.textSecondary} fontSize="$sm">{item.free}</Text>
+                            <Text color={colors.textSecondary} fontSize="$sm" flexShrink={0}>{item.free}</Text>
                           )}
                         </Box>
-                        <Box width={60} alignItems="center">
+                        <Box minWidth={60} alignItems="center">
                           {typeof item.pro === 'boolean' ? (
                             item.pro ? <Check color={colors.brand[600]} size={20} /> : <X color={colors.textSecondary} size={20} />
                           ) : (
-                            <Text color={colors.brand[600]} fontSize="$sm" fontWeight="$semibold">{item.pro}</Text>
+                            <Text color={colors.brand[600]} fontSize="$sm" fontWeight="$semibold" flexShrink={0}>{item.pro}</Text>
                           )}
                         </Box>
                       </HStack>

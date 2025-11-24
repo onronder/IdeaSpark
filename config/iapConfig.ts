@@ -75,6 +75,12 @@ export const PRICING_DISPLAY = {
   },
 };
 
+// Numeric pricing used for analytics/telemetry (must be kept in sync with store pricing)
+export const SUBSCRIPTION_PRICES: Record<'PRO_MONTHLY' | 'PRO_YEARLY', number> = {
+  PRO_MONTHLY: 9.99,
+  PRO_YEARLY: 99.99,
+};
+
 // Map store product IDs to our subscription types
 export const mapProductToSubscriptionType = (productId: string): 'PRO' | null => {
   const allProducts = [...Object.values(IAP_PRODUCTS.ios), ...Object.values(IAP_PRODUCTS.android)];

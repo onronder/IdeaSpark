@@ -1,4 +1,5 @@
-import { init, track, identify, Identify, setGroup, Revenue, revenue } from '@amplitude/analytics-react-native';
+import { init, track, identify, Identify, setGroup, Revenue, revenue, add } from '@amplitude/analytics-react-native';
+import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
@@ -44,7 +45,7 @@ class AnalyticsService {
       this.sessionId = await this.getOrCreateSessionId();
 
       // Initialize Amplitude
-      init(amplitudeApiKey, params?.userId, {
+      const client = init(amplitudeApiKey, params?.userId, {
         trackingOptions: {
           ipAddress: false, // Don't track IP for privacy
         },
@@ -54,6 +55,24 @@ class AnalyticsService {
           screenViews: true,
         },
       });
+
+      // Ensure underlying client is ready
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      client.promise.catch((err) => {
+        console.warn('Amplitude init failed', err);
+      });
+
+      // Best-effort Session Replay plugin (only works on native builds, not Expo Go)
+      try {
+        const plugin = new SessionReplayPlugin();
+        const addResult = add(plugin);
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        addResult.promise.catch((err) => {
+          console.warn('Amplitude Session Replay plugin failed to initialize', err);
+        });
+      } catch (pluginError) {
+        console.warn('Session Replay plugin not available or failed to load', pluginError);
+      }
 
       if (params?.userId) {
         this.userId = params.userId;

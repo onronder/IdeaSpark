@@ -48,8 +48,9 @@ const {
 } = RNIap || {};
 import { Platform, EmitterSubscription, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getProductIds, mapProductToSubscriptionType, mapProductToBillingPeriod, IAP_CONFIG } from '@/config/iapConfig';
+import { getProductIds, mapProductToSubscriptionType, mapProductToBillingPeriod, IAP_CONFIG, SUBSCRIPTION_PRICES } from '@/config/iapConfig';
 import api from '@/lib/api';
+import { analyticsService } from '@/services/analyticsService';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -64,6 +65,8 @@ export enum IAPErrorType {
   PRODUCTS_NOT_FOUND = 'PRODUCTS_NOT_FOUND',
   PURCHASE_CANCELLED = 'PURCHASE_CANCELLED',
   PURCHASE_FAILED = 'PURCHASE_FAILED',
+  PAYMENT_FAILED = 'PAYMENT_FAILED',
+  PRODUCT_NOT_AVAILABLE = 'PRODUCT_NOT_AVAILABLE',
   VALIDATION_FAILED = 'VALIDATION_FAILED',
   RESTORE_FAILED = 'RESTORE_FAILED',
   UNKNOWN = 'UNKNOWN',
@@ -232,6 +235,28 @@ class IAPService {
       if (validationResponse.data.success) {
         console.log('Purchase validated successfully');
 
+        // Track successful subscription purchase in analytics (best-effort)
+        try {
+          const billingPeriod = mapProductToBillingPeriod(productId);
+          const priceKey =
+            billingPeriod === 'MONTHLY' ? 'PRO_MONTHLY' :
+            billingPeriod === 'YEARLY' ? 'PRO_YEARLY' :
+            null;
+
+          if (priceKey) {
+            const amount = SUBSCRIPTION_PRICES[priceKey];
+            const period = billingPeriod === 'MONTHLY' ? 'monthly' : 'yearly';
+
+            await analyticsService.trackSubscriptionPurchased({
+              plan: 'PRO',
+              amount,
+              period,
+            });
+          }
+        } catch (analyticsError) {
+          console.warn('Failed to track subscription purchase analytics', analyticsError);
+        }
+
         // Save purchase info locally
         await this.savePurchaseInfo(purchase);
 
@@ -362,7 +387,7 @@ class IAPService {
 
         if (!subscriptionOffers || subscriptionOffers.length === 0) {
           throw new IAPError(
-            IAPErrorType.PURCHASE_FAILED,
+            IAPErrorType.PRODUCT_NOT_AVAILABLE,
             'No subscription offers available'
           );
         }
@@ -390,7 +415,7 @@ class IAPService {
       }
 
       throw new IAPError(
-        IAPErrorType.PURCHASE_FAILED,
+        IAPErrorType.PAYMENT_FAILED,
         error.message || 'Purchase failed',
         error
       );

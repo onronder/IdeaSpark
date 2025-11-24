@@ -20,6 +20,7 @@ import { useCreateIdea, useUsageSummary } from '@/hooks/useApi';
 import { useToast } from '@/contexts/ToastContext';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import {
   HeaderGradient,
   SectionCard,
@@ -51,6 +52,7 @@ export default function HomeScreen() {
   const toast = useToast();
   const { handleError, logger } = useErrorHandler('HomeScreen');
   const { isOnline } = useNetworkStatus();
+   const { trackIdeaCreated } = useAnalytics();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -94,6 +96,11 @@ export default function HomeScreen() {
       });
 
       if (result) {
+        trackIdeaCreated({
+          ideaId: result.id,
+          category: formData.category,
+        });
+
         toast.success('Idea created!', 'Start chatting to refine it');
         router.push(`/(app)/chats/${result.id}`);
         // Clear form
@@ -201,7 +208,7 @@ export default function HomeScreen() {
 
           {/* Main Idea Creation Card */}
           <SectionCard>
-            <VStack space="lg">
+            <VStack space="xl">
               <VStack space="xs">
                 <Text
                   color={colors.textPrimary}

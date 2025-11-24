@@ -32,7 +32,7 @@ export const FilledTextarea: React.FC<FilledTextareaProps> = ({
   ...props
 }) => {
   return (
-    <VStack space={space.xs}>
+    <VStack space="xs">
       {label && (
         <HStack justifyContent="space-between" alignItems="center">
           <Text
@@ -63,7 +63,7 @@ export const FilledTextarea: React.FC<FilledTextareaProps> = ({
         borderColor={error ? colors.error : colors.borderMuted}
         borderRadius={radii.md}
         isDisabled={isDisabled}
-        minHeight={numberOfLines * 24}
+        h={numberOfLines * 24}
         sx={{
           ':focus': {
             borderColor: error ? colors.error : colors.brand[500],
@@ -83,6 +83,8 @@ export const FilledTextarea: React.FC<FilledTextareaProps> = ({
           py="$3"
           maxLength={maxLength}
           numberOfLines={numberOfLines}
+          height={numberOfLines * 24}
+          scrollEnabled={true}
         />
       </Textarea>
       {error && (
