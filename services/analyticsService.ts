@@ -34,7 +34,13 @@ class AnalyticsService {
       }
 
       // Get Amplitude API key from environment
-      const amplitudeApiKey = process.env.EXPO_PUBLIC_AMPLITUDE_API_KEY || Constants.expoConfig?.extra?.amplitudeApiKey;
+      // Prefer EXPO_PUBLIC_AMPLITUDE_API_KEY so the same name is used
+      // across mobile and backend, but fall back to AMPLITUDE_API_KEY
+      // to support existing local .env files.
+      const amplitudeApiKey =
+        process.env.EXPO_PUBLIC_AMPLITUDE_API_KEY ||
+        process.env.AMPLITUDE_API_KEY ||
+        Constants.expoConfig?.extra?.amplitudeApiKey;
 
       if (!amplitudeApiKey) {
         console.warn('Amplitude API key not configured');
