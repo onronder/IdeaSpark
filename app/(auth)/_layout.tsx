@@ -7,7 +7,7 @@ export default function AuthLayout() {
   // No loading state needed - handled by root layout
   // Redirect to app if already authenticated
   if (isAuthenticated) {
-    return <Redirect href="/(app)/" />;
+    return <Redirect href="/(app)" />;
   }
 
   return (

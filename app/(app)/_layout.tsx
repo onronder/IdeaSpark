@@ -12,7 +12,7 @@ export default function AppLayout() {
   // No loading state needed - handled by root layout
   // Redirect to auth if not authenticated
   if (!isAuthenticated) {
-    return <Redirect href="/(auth)/" />;
+    return <Redirect href="/(auth)" />;
   }
 
   return (

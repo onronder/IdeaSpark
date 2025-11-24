@@ -4,71 +4,43 @@ import {
   ScrollView,
   VStack,
   HStack,
-  Center,
-  Heading,
   Text,
-  Button,
-  ButtonText,
-  ButtonIcon,
-  Card,
-  Badge,
-  BadgeText,
-  Icon,
-  Accordion,
-  AccordionItem,
-  AccordionHeader,
-  AccordionTrigger,
-  AccordionTitleText,
-  AccordionIcon,
-  AccordionContent,
-  AccordionContentText,
-  Divider,
-  Avatar,
-  AvatarImage,
   Pressable,
-  Spinner,
-  Alert,
-  AlertIcon,
-  AlertText,
 } from '@gluestack-ui/themed';
 import {
   Crown,
+  Infinity,
   Sparkles,
   Zap,
-  Infinity,
+  TrendingUp,
+  Target,
   Users,
-  Star,
   Check,
   X,
-  ChevronDown,
-  RefreshCw,
-  ShieldCheck,
-  AlertCircle,
-  TrendingUp,
-  MessageCircle,
-  Lightbulb,
-  Target,
 } from 'lucide-react-native';
 import { Platform, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from "@/contexts/SupabaseAuthContext";
-import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { iapService, IAPError, IAPErrorType } from '@/services/iapService';
-import { getProductId, PRICING_DISPLAY, SUBSCRIPTION_TIERS } from '@/config/iapConfig';
+import { getProductId, PRICING_DISPLAY } from '@/config/iapConfig';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { GradientBackground, GlassCard, AnimatedOrb } from '@/components/ui';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  HeaderGradient,
+  SectionCard,
+  PrimaryButton,
+  GhostPillButton,
+  SegmentedTabs,
+  InlineNotice,
+  ListItem,
+} from '@/components/ui';
+import { colors, space, shadows } from '@/theme/tokens';
 
 export default function UpgradeScreen() {
   const router = useRouter();
-  const { user, refreshUser } = useAuth();
-  const { colorMode } = useTheme();
+  const { user } = useAuth();
   const toast = useToast();
   const { handleError, logger } = useErrorHandler('UpgradeScreen');
-  const insets = useSafeAreaInsets();
-
-  const isDark = colorMode === 'dark';
 
   const [selectedPlan, setSelectedPlan] = useState<'MONTHLY' | 'YEARLY'>('YEARLY');
   const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +53,6 @@ export default function UpgradeScreen() {
     checkSubscriptionStatus();
 
     return () => {
-      // Cleanup IAP service when leaving screen
       iapService.disconnect();
     };
   }, []);
@@ -123,7 +94,6 @@ export default function UpgradeScreen() {
 
       if (result.success) {
         toast.success('Welcome to Pro!', 'Your subscription is now active');
-        await refreshUser();
         logger.logUserAction('purchase_completed', { plan: selectedPlan });
         router.back();
       } else {
@@ -161,7 +131,6 @@ export default function UpgradeScreen() {
 
       if (result.restored) {
         toast.success('Purchases Restored', 'Your subscription has been restored successfully');
-        await refreshUser();
         await checkSubscriptionStatus();
         logger.logUserAction('restore_purchases_completed');
       } else {
@@ -188,12 +157,12 @@ export default function UpgradeScreen() {
   };
 
   const features = [
-    { icon: Infinity, text: "Unlimited idea sessions", color: "#8B5CF6" },
-    { icon: Sparkles, text: "Unlimited AI replies per session", color: "#3B82F6" },
-    { icon: Zap, text: "Priority response time", color: "#F59E0B" },
-    { icon: TrendingUp, text: "Advanced analytics dashboard", color: "#10B981" },
-    { icon: Target, text: "Export ideas to PDF", color: "#EC4899" },
-    { icon: Users, text: "Collaborate with team members", color: "#6366F1" },
+    { icon: Infinity, text: "Unlimited idea sessions" },
+    { icon: Sparkles, text: "Unlimited AI replies per session" },
+    { icon: Zap, text: "Priority response time" },
+    { icon: TrendingUp, text: "Advanced analytics dashboard" },
+    { icon: Target, text: "Export ideas to PDF" },
+    { icon: Users, text: "Collaborate with team members" },
   ];
 
   const comparisonData = [
@@ -205,26 +174,6 @@ export default function UpgradeScreen() {
     { feature: "Export Ideas", free: false, pro: true },
   ];
 
-  const faqs = [
-    {
-      question: "Can I cancel anytime?",
-      answer: `Yes, you can cancel your subscription at any time through your ${Platform.OS === 'ios' ? 'Apple ID settings' : 'Google Play settings'}. You'll continue to have access until the end of your current billing period.`
-    },
-    {
-      question: "How does billing work?",
-      answer: `Subscriptions are billed through your ${Platform.OS === 'ios' ? 'Apple ID' : 'Google Play account'}. The amount will be charged to your account after confirming the purchase.`
-    },
-    {
-      question: "Can I switch between monthly and yearly?",
-      answer: `Yes, you can change your subscription plan at any time. The new plan will take effect at the next billing cycle.`
-    },
-    {
-      question: "What happens to my data if I cancel?",
-      answer: "Your data remains safe and accessible. If you cancel, you'll return to the Free plan with limited features, but your existing ideas will remain."
-    }
-  ];
-
-  // Get actual prices from products if available
   const getProductPrice = (planType: 'MONTHLY' | 'YEARLY') => {
     const productId = getProductId(`PRO_${planType}`);
     const product = products.find(p => p.productId === productId);
@@ -239,395 +188,185 @@ export default function UpgradeScreen() {
   // If user already has Pro, show manage subscription screen
   if (subscriptionStatus?.isActive) {
     return (
-      <Box flex={1}>
-        <GradientBackground>
-          <Box px="$5" pt={insets.top + 24} pb="$8">
-            <Center>
-              <AnimatedOrb size={140} icon="sparkles" />
-              <Heading size="3xl" mb="$4" mt="$8" color={isDark ? "$white" : "$textLight900"} textAlign="center" lineHeight="$3xl">
-                You're a Pro Member!
-              </Heading>
-              <Text color={isDark ? "$textDark300" : "$textLight600"} textAlign="center" px="$6" size="lg" lineHeight="$lg">
-                You have full access to all premium features
+      <Box flex={1} bg={colors.surfaceMuted}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <HeaderGradient
+            greeting="You're a Pro Member!"
+            name="✨"
+            usageText="Full access to all premium features"
+            showUpgradeButton={false}
+          />
+
+          <VStack space="lg" px={space.lg} py={space.lg}>
+            <SectionCard>
+              <VStack space="md">
+                <HStack space="md" alignItems="center">
+                  <Box
+                    bg={colors.successLight}
+                    p={space.sm}
+                    borderRadius={12}
+                  >
+                    <Crown color={colors.success} size={24} />
+                  </Box>
+                  <Text color={colors.textPrimary} fontSize="$xl" fontWeight="$bold">
+                    Active Subscription
+                  </Text>
+                </HStack>
+
+                {subscriptionStatus.billingPeriod && (
+                  <Text color={colors.textSecondary} fontSize="$md">
+                    Plan: Pro {subscriptionStatus.billingPeriod === 'MONTHLY' ? 'Monthly' : 'Yearly'}
+                  </Text>
+                )}
+
+                {subscriptionStatus.expiryDate && (
+                  <Text color={colors.textSecondary} fontSize="$md">
+                    Next billing: {new Date(subscriptionStatus.expiryDate).toLocaleDateString()}
+                  </Text>
+                )}
+
+                <PrimaryButton onPress={handleManageSubscription} variant="outline">
+                  Manage Subscription
+                </PrimaryButton>
+              </VStack>
+            </SectionCard>
+
+            <VStack space="sm">
+              <Text color={colors.textPrimary} fontSize="$lg" fontWeight="$semibold">
+                Your Pro Features
               </Text>
-            </Center>
-          </Box>
-
-          <ScrollView flex={1} px="$5" pb="$8" showsVerticalScrollIndicator={false}>
-            <VStack space="xl">
-              <GlassCard p="$8" opacity={0.1}>
-                <VStack space="lg">
-                  <HStack space="md" alignItems="center">
-                    <Box
-                      bg="rgba(16,185,129,0.2)"
-                      p="$3"
-                      borderRadius="$xl"
-                    >
-                      <Icon as={ShieldCheck} size="xl" color="$success600" />
-                    </Box>
-                    <Text fontWeight="$bold" size="xl" color={isDark ? "$white" : "$textLight900"}>
-                      Active Subscription
-                    </Text>
-                  </HStack>
-
-                  {subscriptionStatus.billingPeriod && (
-                    <Text color={isDark ? "$textDark200" : "$textLight700"} size="lg">
-                      Plan: Pro {subscriptionStatus.billingPeriod === 'MONTHLY' ? 'Monthly' : 'Yearly'}
-                    </Text>
-                  )}
-
-                  {subscriptionStatus.expiryDate && (
-                    <Text color={isDark ? "$textDark200" : "$textLight700"} size="lg">
-                      Next billing date: {new Date(subscriptionStatus.expiryDate).toLocaleDateString()}
-                    </Text>
-                  )}
-
-                  <Pressable onPress={handleManageSubscription} mt="$4">
-                    <Box
-                      bg={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
-                      px="$8"
-                      py="$4"
-                      borderRadius="$2xl"
-                      borderWidth={2}
-                      borderColor={isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}
-                      sx={{
-                        ':active': {
-                          transform: [{ scale: 0.98 }]
-                        }
-                      }}
-                    >
-                      <Text textAlign="center" fontWeight="$bold" size="lg" color={isDark ? "$white" : "$textLight900"}>
-                        Manage Subscription
-                      </Text>
-                    </Box>
-                  </Pressable>
-                </VStack>
-              </GlassCard>
-
-              <GlassCard p="$8" opacity={0.08}>
-                <VStack space="lg">
-                  <Heading size="xl" color={isDark ? "$white" : "$textLight900"}>
-                    Your Pro Benefits
-                  </Heading>
-                  {features.map((feature, index) => (
-                    <HStack key={index} space="md" alignItems="center">
-                      <Box
-                        bg={`${feature.color}30`}
-                        p="$2.5"
-                        borderRadius="$lg"
-                      >
-                        <Icon as={feature.icon} size="lg" color={feature.color} />
-                      </Box>
-                      <Text color={isDark ? "$textDark200" : "$textLight700"} flex={1} size="md" lineHeight="$md">
-                        {feature.text}
-                      </Text>
-                      <Icon as={Check} size="lg" color="$success600" />
-                    </HStack>
-                  ))}
-                </VStack>
-              </GlassCard>
+              {features.map((feature, index) => (
+                <ListItem
+                  key={index}
+                  icon={feature.icon}
+                  title={feature.text}
+                />
+              ))}
             </VStack>
-          </ScrollView>
-        </GradientBackground>
+          </VStack>
+        </ScrollView>
       </Box>
     );
   }
 
+  // Main upgrade screen
   return (
-    <Box flex={1}>
-      <GradientBackground>
-        {/* Enhanced Header */}
-        <Box px="$5" pt={insets.top + 24} pb="$8">
-          <Center>
-            <AnimatedOrb size={140} icon="sparkles" />
-            <Heading size="3xl" mb="$4" mt="$8" color={isDark ? "$white" : "$textLight900"} textAlign="center" lineHeight="$3xl">
-              Unlock Premium Features
-            </Heading>
-            <Text color={isDark ? "$textDark300" : "$textLight600"} textAlign="center" px="$6" size="lg" lineHeight="$lg">
-              Choose your plan and start creating unlimited ideas
-            </Text>
-          </Center>
-        </Box>
+    <Box flex={1} bg={colors.surfaceMuted}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <HeaderGradient
+          greeting="Unlock Pro Features"
+          name="👑"
+          usageText="Unlimited ideas, unlimited possibilities"
+          showUpgradeButton={false}
+        />
 
-        <ScrollView flex={1} px="$5" pb="$8" showsVerticalScrollIndicator={false}>
-          <VStack space="2xl">
-            {/* Enhanced Plan Selection */}
-            <HStack space="md" justifyContent="center">
-              <Pressable
-                onPress={() => setSelectedPlan('MONTHLY')}
-                flex={1}
-              >
-                <GlassCard
-                  p="$6"
-                  opacity={selectedPlan === 'MONTHLY' ? 0.15 : 0.08}
-                  borderColor={selectedPlan === 'MONTHLY' ? '$primary500' : (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)")}
-                  borderWidth={selectedPlan === 'MONTHLY' ? 3 : 2}
-                  sx={{
-                    ':active': {
-                      transform: [{ scale: 0.95 }]
-                    }
-                  }}
-                >
-                  <VStack alignItems="center" space="xs">
-                    <Text fontWeight="$bold" size="lg" color={isDark ? "$white" : "$textLight900"}>
-                      Monthly
-                    </Text>
-                    <Text size="3xl" fontWeight="$bold" color="$primary600" lineHeight="$3xl">
-                      {getProductPrice('MONTHLY').split('/')[0]}
-                    </Text>
-                    <Text size="md" color={isDark ? "$textDark400" : "$textLight600"} fontWeight="$medium">
-                      /month
-                    </Text>
-                  </VStack>
-                </GlassCard>
-              </Pressable>
+        <VStack space="lg" px={space.lg} py={space.lg}>
+          {/* Plan Selector */}
+          <SegmentedTabs
+            tabs={[
+              { key: 'MONTHLY', label: 'Monthly' },
+              { key: 'YEARLY', label: 'Yearly (Save 17%)' },
+            ]}
+            activeTab={selectedPlan}
+            onTabChange={(key) => setSelectedPlan(key as 'MONTHLY' | 'YEARLY')}
+          />
 
-              <Pressable
-                onPress={() => setSelectedPlan('YEARLY')}
-                flex={1}
-              >
-                <GlassCard
-                  p="$6"
-                  opacity={selectedPlan === 'YEARLY' ? 0.15 : 0.08}
-                  borderColor={selectedPlan === 'YEARLY' ? '$primary500' : (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)")}
-                  borderWidth={selectedPlan === 'YEARLY' ? 3 : 2}
-                  sx={{
-                    ':active': {
-                      transform: [{ scale: 0.95 }]
-                    }
-                  }}
-                >
-                  <Box
-                    bg="linear-gradient(135deg, #10B981 0%, #059669 100%)"
-                    position="absolute"
-                    top={-12}
-                    right="$4"
-                    px="$3"
-                    py="$1.5"
-                    borderRadius="$full"
-                    shadowColor="$success600"
-                    shadowOffset={{ width: 0, height: 4 }}
-                    shadowOpacity={0.3}
-                    shadowRadius={8}
-                    zIndex={1}
-                  >
-                    <Text color="$white" fontWeight="$bold" fontSize="$xs">SAVE 17%</Text>
-                  </Box>
-                  <VStack alignItems="center" space="xs">
-                    <Text fontWeight="$bold" size="lg" color={isDark ? "$white" : "$textLight900"}>
-                      Yearly
-                    </Text>
-                    <Text size="3xl" fontWeight="$bold" color="$primary600" lineHeight="$3xl">
-                      {getProductPrice('YEARLY').split('/')[0]}
-                    </Text>
-                    <Text size="md" color={isDark ? "$textDark400" : "$textLight600"} fontWeight="$medium">
-                      /year
-                    </Text>
-                  </VStack>
-                </GlassCard>
-              </Pressable>
-            </HStack>
+          {/* Pricing Cards */}
+          <SectionCard>
+            <VStack space="lg">
+              <VStack space="xs" alignItems="center">
+                <Text color={colors.textPrimary} fontSize="$3xl" fontWeight="$bold">
+                  {getProductPrice(selectedPlan)}
+                </Text>
+                <Text color={colors.textSecondary} fontSize="$md">
+                  per {selectedPlan === 'MONTHLY' ? 'month' : 'year'}
+                </Text>
+              </VStack>
 
-            {/* Enhanced Purchase Button */}
-            <VStack space="md">
-              <Pressable
-                onPress={handlePurchase}
-                disabled={isLoading}
-              >
-                <Box
-                  bg={isLoading ? "$coolGray400" : "$primary600"}
-                  h="$20"
-                  borderRadius="$3xl"
-                  justifyContent="center"
-                  alignItems="center"
-                  shadowColor="$primary600"
-                  shadowOffset={{ width: 0, height: 8 }}
-                  shadowOpacity={0.4}
-                  shadowRadius={16}
-                  sx={{
-                    ':active': {
-                      transform: [{ scale: 0.98 }]
-                    }
-                  }}
-                >
-                  {isLoading ? (
-                    <Spinner color="$white" size="large" />
-                  ) : (
-                    <HStack space="sm" alignItems="center">
-                      <Icon as={Crown} size="xl" color="$white" />
-                      <Text color="$white" fontWeight="$bold" fontSize="$xl">
-                        Subscribe to Pro {selectedPlan === 'YEARLY' ? 'Yearly' : 'Monthly'}
-                      </Text>
-                    </HStack>
-                  )}
-                </Box>
-              </Pressable>
-
-              <Pressable onPress={handleRestorePurchases} disabled={isRestoring}>
-                <Box
-                  bg={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)"}
-                  h="$14"
-                  borderRadius="$2xl"
-                  justifyContent="center"
-                  alignItems="center"
-                  borderWidth={2}
-                  borderColor={isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}
-                  sx={{
-                    ':active': {
-                      transform: [{ scale: 0.98 }]
-                    }
-                  }}
-                >
-                  {isRestoring ? (
-                    <Spinner color={isDark ? "$white" : "$textLight900"} />
-                  ) : (
-                    <HStack space="sm" alignItems="center">
-                      <Icon as={RefreshCw} size="md" color={isDark ? "$white" : "$textLight900"} />
-                      <Text color={isDark ? "$white" : "$textLight900"} fontWeight="$semibold" fontSize="$md">
-                        Restore Purchases
-                      </Text>
-                    </HStack>
-                  )}
-                </Box>
-              </Pressable>
-
-              <Box
-                bg={isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.1)"}
-                p="$4"
-                borderRadius="$xl"
-                borderWidth={1}
-                borderColor="$info500"
-              >
-                <HStack space="sm" alignItems="center">
-                  <Icon as={ShieldCheck} size="md" color="$info600" />
-                  <Text size="sm" color={isDark ? "$textDark200" : "$textLight700"} flex={1} lineHeight="$sm">
-                    Secure payment through {Platform.OS === 'ios' ? 'Apple App Store' : 'Google Play'}
-                  </Text>
-                </HStack>
-              </Box>
-            </VStack>
-
-            {/* Enhanced Features List */}
-            <GlassCard p="$8" opacity={0.08}>
-              <VStack space="lg">
-                <Heading size="2xl" color={isDark ? "$white" : "$textLight900"} textAlign="center" lineHeight="$2xl">
-                  What's Included in Pro
-                </Heading>
+              <VStack space="sm">
                 {features.map((feature, index) => (
-                  <HStack key={index} space="md" alignItems="center">
+                  <HStack key={index} space="sm" alignItems="center">
                     <Box
-                      bg={`${feature.color}30`}
-                      p="$3"
-                      borderRadius="$xl"
+                      bg={colors.brand[50]}
+                      p={space.xs}
+                      borderRadius={8}
                     >
-                      <Icon as={feature.icon} size="xl" color={feature.color} />
+                      <feature.icon color={colors.brand[600]} size={20} />
                     </Box>
-                    <Text color={isDark ? "$textDark200" : "$textLight700"} flex={1} size="lg" fontWeight="$medium" lineHeight="$lg">
+                    <Text color={colors.textPrimary} fontSize="$md" flex={1}>
                       {feature.text}
                     </Text>
                   </HStack>
                 ))}
               </VStack>
-            </GlassCard>
 
-            {/* Enhanced Comparison Table */}
-            <GlassCard p="$8" opacity={0.08}>
-              <VStack space="lg">
-                <Heading size="2xl" color={isDark ? "$white" : "$textLight900"} textAlign="center" lineHeight="$2xl">
-                  Free vs Pro
-                </Heading>
-                
-                <VStack space="md">
-                  {/* Header Row */}
-                  <HStack justifyContent="space-between" pb="$3" borderBottomWidth={2} borderColor={isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}>
-                    <Text fontWeight="$bold" size="md" color={isDark ? "$textDark300" : "$textLight600"} flex={1}>
-                      Feature
-                    </Text>
-                    <Text fontWeight="$bold" size="md" color={isDark ? "$textDark300" : "$textLight600"} textAlign="center" width="$20">
-                      Free
-                    </Text>
-                    <Text fontWeight="$bold" size="md" color="$primary600" textAlign="center" width="$20">
-                      Pro
-                    </Text>
-                  </HStack>
+              <PrimaryButton
+                onPress={handlePurchase}
+                isLoading={isLoading}
+                isDisabled={isLoading}
+              >
+                {isLoading ? 'Processing...' : 'Start Pro Subscription'}
+              </PrimaryButton>
 
-                  {/* Data Rows */}
-                  {comparisonData.map((row, index) => (
-                    <HStack key={index} justifyContent="space-between" py="$3" borderBottomWidth={1} borderColor={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}>
-                      <Text size="md" color={isDark ? "$textDark200" : "$textLight700"} flex={1} fontWeight="$medium">
-                        {row.feature}
+              <GhostPillButton
+                onPress={handleRestorePurchases}
+                isDisabled={isRestoring}
+                variant="ghost"
+              >
+                {isRestoring ? 'Restoring...' : 'Restore Purchases'}
+              </GhostPillButton>
+            </VStack>
+          </SectionCard>
+
+          {/* Comparison Table */}
+          <VStack space="md">
+            <Text color={colors.textPrimary} fontSize="$xl" fontWeight="$semibold">
+              Free vs Pro
+            </Text>
+            <SectionCard noPadding>
+              <VStack>
+                {comparisonData.map((item, index) => (
+                  <Box
+                    key={index}
+                    px={space.md}
+                    py={space.sm}
+                    borderBottomWidth={index < comparisonData.length - 1 ? 1 : 0}
+                    borderBottomColor={colors.borderMuted}
+                  >
+                    <HStack justifyContent="space-between" alignItems="center">
+                      <Text color={colors.textPrimary} fontSize="$sm" flex={1}>
+                        {item.feature}
                       </Text>
-                      <Box width="$20" alignItems="center">
-                        {typeof row.free === 'boolean' ? (
-                          <Icon as={row.free ? Check : X} size="lg" color={row.free ? "$success600" : "$error500"} />
-                        ) : (
-                          <Text size="md" color={isDark ? "$textDark300" : "$textLight600"} textAlign="center">
-                            {row.free}
-                          </Text>
-                        )}
-                      </Box>
-                      <Box width="$20" alignItems="center">
-                        {typeof row.pro === 'boolean' ? (
-                          <Icon as={row.pro ? Check : X} size="lg" color={row.pro ? "$success600" : "$error500"} />
-                        ) : (
-                          <Text size="md" color="$primary600" fontWeight="$bold" textAlign="center">
-                            {row.pro}
-                          </Text>
-                        )}
-                      </Box>
-                    </HStack>
-                  ))}
-                </VStack>
-              </VStack>
-            </GlassCard>
-
-            {/* Enhanced FAQ Section */}
-            <GlassCard p="$8" opacity={0.08}>
-              <VStack space="lg">
-                <Heading size="2xl" color={isDark ? "$white" : "$textLight900"} textAlign="center" lineHeight="$2xl">
-                  Frequently Asked Questions
-                </Heading>
-                
-                <Accordion type="single" variant="unfilled">
-                  {faqs.map((faq, index) => (
-                    <AccordionItem key={index} value={`faq-${index}`}>
-                      <AccordionHeader>
-                        <AccordionTrigger>
-                          {({ isExpanded }) => (
-                            <HStack justifyContent="space-between" alignItems="center" flex={1} py="$3">
-                              <Text fontWeight="$semibold" size="lg" color={isDark ? "$white" : "$textLight900"} flex={1} lineHeight="$lg">
-                                {faq.question}
-                              </Text>
-                              <AccordionIcon as={ChevronDown} ml="$3" color={isDark ? "$textDark300" : "$textLight500"} />
-                            </HStack>
+                      <HStack space="xl" alignItems="center">
+                        <Box width={60} alignItems="center">
+                          {typeof item.free === 'boolean' ? (
+                            item.free ? <Check color={colors.success} size={20} /> : <X color={colors.textSecondary} size={20} />
+                          ) : (
+                            <Text color={colors.textSecondary} fontSize="$sm">{item.free}</Text>
                           )}
-                        </AccordionTrigger>
-                      </AccordionHeader>
-                      <AccordionContent>
-                        <AccordionContentText color={isDark ? "$textDark300" : "$textLight600"} size="md" lineHeight="$lg" pb="$4">
-                          {faq.answer}
-                        </AccordionContentText>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
+                        </Box>
+                        <Box width={60} alignItems="center">
+                          {typeof item.pro === 'boolean' ? (
+                            item.pro ? <Check color={colors.brand[600]} size={20} /> : <X color={colors.textSecondary} size={20} />
+                          ) : (
+                            <Text color={colors.brand[600]} fontSize="$sm" fontWeight="$semibold">{item.pro}</Text>
+                          )}
+                        </Box>
+                      </HStack>
+                    </HStack>
+                  </Box>
+                ))}
               </VStack>
-            </GlassCard>
-
-            {/* Enhanced Bottom CTA */}
-            <Center py="$6">
-              <Text size="sm" color={isDark ? "$textDark400" : "$textLight500"} textAlign="center" px="$8" lineHeight="$sm">
-                Continue with limited features
-              </Text>
-              <Pressable onPress={() => router.back()} mt="$4">
-                <Text color="$primary600" fontWeight="$semibold" size="md">
-                  Maybe Later
-                </Text>
-              </Pressable>
-            </Center>
+            </SectionCard>
           </VStack>
-        </ScrollView>
-      </GradientBackground>
+
+          {/* Legal Text */}
+          <Text color={colors.textSecondary} fontSize="$xs" textAlign="center">
+            Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.
+            Manage your subscription in your account settings.
+          </Text>
+        </VStack>
+      </ScrollView>
     </Box>
   );
 }

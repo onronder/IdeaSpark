@@ -7,8 +7,8 @@ export default function RootIndex() {
   // No loading state needed here - handled by root layout
   // Redirect based on auth state
   if (isAuthenticated) {
-    return <Redirect href="/(app)/" />;
+    return <Redirect href="/(app)" />;
   } else {
-    return <Redirect href="/(auth)/" />;
+    return <Redirect href="/(auth)" />;
   }
 }
