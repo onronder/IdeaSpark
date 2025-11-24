@@ -82,7 +82,7 @@ jobs:
 
       - name: Upload coverage reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-report
           path: coverage/
@@ -123,7 +123,7 @@ jobs:
         run: npx expo export --platform web --output-dir dist-web
 
       - name: Upload web build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: web-build
           path: dist-web/
@@ -179,7 +179,7 @@ jobs:
           ./gradlew assembleDebug
 
       - name: Upload Android APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: android-debug-apk
           path: android/app/build/outputs/apk/debug/
@@ -243,7 +243,7 @@ jobs:
             build
 
       - name: Upload iOS build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ios-debug-build
           path: ios/build/
