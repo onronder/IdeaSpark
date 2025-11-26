@@ -1,5 +1,6 @@
-import { Stack } from "expo-router";
-import { useEffect, useState } from "react";
+import { Stack, useRouter } from "expo-router";
+import { useEffect, useState, useRef } from "react";
+import { Linking } from "react-native";
 import "@/global.css";
 import * as Sentry from '@sentry/react-native';
 import { initSentry, SentryErrorBoundary, captureException, setUser } from "@/sentry.config";
@@ -9,6 +10,7 @@ import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw, Sparkles } from "lucide-react-native";
 import { useLogger } from "@/hooks/useLogger";
+import { analyticsService } from "@/services/analyticsService";
 import { GluestackUIProvider, Box, Center, VStack, Text, Icon, Spinner, HStack } from "@gluestack-ui/themed";
 import { View, Text as RNText, TouchableOpacity } from "react-native";
 import { gluestackUIConfig } from "@/gluestack-ui.config";
@@ -44,6 +46,12 @@ function ErrorFallback({ error, resetError }: { error: Error; resetError: () => 
       errorName: error.name,
       errorMessage: error.message,
       errorStack: error.stack,
+    });
+
+    // Track error in analytics
+    analyticsService.trackError({
+      error,
+      context: 'ErrorBoundary',
     });
   }, [error]);
 
@@ -127,6 +135,7 @@ function ThemedGluestackProvider({ children }: { children: React.ReactNode }) {
 function AppNavigator() {
   const { isLoading, user } = useAuth();
   const logger = useLogger('AppNavigator');
+  const router = useRouter();
   // Global notifications initialization and handlers
   // (handled via useNotifications hook using Supabase auth state)
   useNotifications();
@@ -136,6 +145,7 @@ function AppNavigator() {
   const [showAnalyticsPrompt, setShowAnalyticsPrompt] = useState(false);
   const [checkingConsent, setCheckingConsent] = useState(true);
   const [updatingConsent, setUpdatingConsent] = useState(false);
+  const consentHandledRef = useRef(false);
 
   useEffect(() => {
     // Set user context for Sentry when user changes
@@ -155,6 +165,13 @@ function AppNavigator() {
   useEffect(() => {
     const checkConsent = async () => {
       try {
+        // Skip if already handled this session
+        if (consentHandledRef.current) {
+          setShowAnalyticsPrompt(false);
+          setCheckingConsent(false);
+          return;
+        }
+
         // Only prompt once a user is signed in and no explicit choice was stored
         if (!user) {
           setShowAnalyticsPrompt(false);
@@ -167,9 +184,11 @@ function AppNavigator() {
           setShowAnalyticsPrompt(true);
         } else {
           setShowAnalyticsPrompt(false);
+          consentHandledRef.current = true; // Mark as handled
         }
       } catch (err) {
         console.warn('Failed to check analytics consent', err);
+        setShowAnalyticsPrompt(false); // Don't show on error
       } finally {
         setCheckingConsent(false);
       }
@@ -182,13 +201,87 @@ function AppNavigator() {
     try {
       setUpdatingConsent(true);
       await setUserConsent(consent);
+      consentHandledRef.current = true; // Mark as handled
       setShowAnalyticsPrompt(false);
     } catch (err) {
       console.warn('Failed to update analytics consent', err);
+      // Still hide the prompt even on error to avoid annoying users
+      setShowAnalyticsPrompt(false);
+      consentHandledRef.current = true;
     } finally {
       setUpdatingConsent(false);
     }
   };
+
+  // Deep link handling for password reset and other flows
+  useEffect(() => {
+    // Handle initial URL (app opened from link while closed)
+    const handleInitialURL = async () => {
+      try {
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) {
+          handleDeepLink(initialUrl);
+        }
+      } catch (error) {
+        logger.error('Error getting initial URL', error);
+      }
+    };
+
+    // Handle incoming URLs (app opened from link while running)
+    const handleURL = ({ url }: { url: string }) => {
+      handleDeepLink(url);
+    };
+
+    const handleDeepLink = (url: string) => {
+      logger.info('Deep link received', { url });
+
+      try {
+        // Parse the URL
+        const parsedUrl = new URL(url);
+
+        // Handle password reset
+        if (parsedUrl.hostname === 'reset-password' || parsedUrl.pathname.includes('/reset-password')) {
+          // Extract tokens from URL parameters
+          const accessToken = parsedUrl.searchParams.get('access_token');
+          const refreshToken = parsedUrl.searchParams.get('refresh_token');
+          const type = parsedUrl.searchParams.get('type');
+
+          if (accessToken && type === 'recovery') {
+            // Navigate to reset password screen with token
+            router.push({
+              pathname: '/(auth)/reset-password',
+              params: { access_token: accessToken },
+            });
+            logger.info('Navigating to password reset screen');
+          } else {
+            logger.warn('Invalid password reset link', { accessToken: !!accessToken, type });
+          }
+        }
+
+        // Handle email verification (future enhancement)
+        else if (parsedUrl.hostname === 'verify-email' || parsedUrl.pathname.includes('/verify-email')) {
+          const token = parsedUrl.searchParams.get('token');
+          if (token) {
+            logger.info('Email verification link received', { token: '***' });
+            // TODO: Implement email verification screen
+          }
+        }
+
+        // Add more deep link handlers as needed
+      } catch (error) {
+        logger.error('Error parsing deep link', { url, error });
+      }
+    };
+
+    handleInitialURL();
+
+    // Listen for URL events
+    const subscription = Linking.addEventListener('url', handleURL);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [router, logger]);
 
   if (isLoading) {
     return <SplashScreen />;

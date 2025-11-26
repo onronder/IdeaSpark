@@ -236,13 +236,24 @@ export class UserController {
 
       const preferences = req.body;
 
-      await UserService.updateNotificationPreferences(
+      const updatedUser = await UserService.updateNotificationPreferences(
         req.user.id,
         preferences
       );
 
       res.json({
         success: true,
+        data: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          avatar: updatedUser.avatar,
+          emailVerified: updatedUser.emailVerified,
+          subscriptionPlan: updatedUser.subscriptionPlan,
+          preferences: updatedUser.preferences,
+          createdAt: updatedUser.createdAt,
+          updatedAt: updatedUser.updatedAt,
+        },
         message: 'Notification preferences updated',
       });
     } catch (error) {
@@ -270,13 +281,24 @@ export class UserController {
         throw new ApiError(400, 'Invalid theme value', 'INVALID_THEME');
       }
 
-      await UserService.updateThemePreference(
+      const updatedUser = await UserService.updateThemePreference(
         req.user.id,
         theme
       );
 
       res.json({
         success: true,
+        data: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          avatar: updatedUser.avatar,
+          emailVerified: updatedUser.emailVerified,
+          subscriptionPlan: updatedUser.subscriptionPlan,
+          preferences: updatedUser.preferences,
+          createdAt: updatedUser.createdAt,
+          updatedAt: updatedUser.updatedAt,
+        },
         message: 'Theme preference updated',
       });
     } catch (error) {

@@ -50,11 +50,11 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
    - Add global middlewares: security headers (helmet), CORS config (allow Expo dev host), JSON body parser with size limit, request logging (pino).
    - Create central `errorHandler` returning normalized JSON error responses.
 5. **Auth & Session Integration (Supabase)**
-   - Use Supabase Auth (`auth.users`) as the sole identity provider; do not implement custom email/password endpoints in Node.
+   - Use Supabase Auth (`auth.users`) as the sole identity provider for mobile and web clients; Node email/password endpoints under `/api/v1/auth/*` are retained only as legacy/utility APIs and are not used by the app.
    - Implement middleware that validates Supabase JWTs using `SUPABASE_JWT_SECRET` and loads the corresponding `public.users` record into `req.user`, including subscription data.
-   - Expose minimal auth-related API surface on the backend:
+   - Expose minimal auth-related API surface on the backend for clients:
      - `GET /api/v1/auth/me` returning profile + plan tier for the authenticated Supabase user.
-     - Additional profile/usage/subscription endpoints that assume a valid Supabase bearer token but never handle passwords directly.
+     - Profile/usage/subscription endpoints that assume a valid Supabase bearer token but never handle passwords directly.
 6. **Idea + Message APIs (stubbed AI)**
    - `POST /ideas`: create session with initial prompt, enforce one active idea for free tier.
    - `GET /ideas/:id/messages`: list conversation history sorted by creation date.
@@ -286,7 +286,7 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
 
 ## Phase 8 – Analytics, CAC & Usage Reporting
 
-> Status: **Amplitude-based analytics are implemented on both mobile and backend; work remaining is mostly around attribution, dashboards, and deeper QA.**
+> Status: **Amplitude-based analytics are implemented on both mobile and backend; event coverage and consent are wired for core flows. Remaining work is mostly around attribution, dashboards, and long-term QA.**
 
 1. **Client & Backend Analytics Integration (Amplitude) – Implemented**
    - Mobile:
@@ -306,7 +306,7 @@ This to-do list expands the `docs/FullStackDevPlan.md` strategy combined with th
        - User analytics: `/api/v1/analytics/user/:userId`.
      - Server startup (`server/src/index.ts`) initializes the analytics service when `AMPLITUDE_API_KEY` is set.
 
-2. **Event Coverage & Consent – In Progress**
+2. **Event Coverage & Consent – Implemented (Dashboards Pending)**
    - Core product events are wired from the mobile app as described above, and will only fire when:
      - The device has `analyticsConsent === 'true'` in AsyncStorage, and
      - Amplitude has been initialized.

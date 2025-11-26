@@ -48,6 +48,10 @@ const {
 } = RNIap || {};
 import { Platform, EmitterSubscription, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '@/hooks/useLogger';
+
+// Set logger component
+logger.setComponent('IAPService');
 import { getProductIds, mapProductToSubscriptionType, mapProductToBillingPeriod, IAP_CONFIG, SUBSCRIPTION_PRICES } from '@/config/iapConfig';
 import api from '@/lib/api';
 import { analyticsService } from '@/services/analyticsService';
@@ -107,16 +111,16 @@ class IAPService {
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) {
-      console.log('IAP Service already initialized');
+      logger.info('IAP Service already initialized');
       return;
     }
 
     try {
-      console.log('Initializing IAP connection...');
+      logger.info('Initializing IAP connection');
 
       // Initialize connection to the store
       const result = await initConnection();
-      console.log('IAP connection initialized:', result);
+      logger.info('IAP connection initialized', { result });
 
       // Clear any cached data on iOS
       if (Platform.OS === 'ios') {
@@ -134,9 +138,9 @@ class IAPService {
       await this.processPendingPurchases();
 
       this.isInitialized = true;
-      console.log('IAP Service initialized successfully');
+      logger.info('IAP Service initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize IAP:', error);
+      logger.error('Failed to initialize IAP', error);
       throw new IAPError(
         IAPErrorType.CONNECTION_FAILED,
         'Failed to connect to the app store',
@@ -151,16 +155,16 @@ class IAPService {
   private async loadProducts(): Promise<void> {
     try {
       const productIds = getProductIds();
-      console.log('Loading products:', productIds);
+      logger.debug('Loading products', { productIds });
 
       // Load subscription products
       this.subscriptions = await getSubscriptions({ skus: productIds });
-      console.log('Loaded subscriptions:', this.subscriptions);
+      logger.info('Loaded subscriptions', { count: this.subscriptions.length });
 
       // For iOS, we also get regular products
       if (Platform.OS === 'ios') {
         this.products = await getProducts({ skus: productIds });
-        console.log('Loaded products:', this.products);
+        logger.info('Loaded products', { count: this.products.length });
       }
 
       if (this.subscriptions.length === 0 && this.products.length === 0) {
@@ -170,7 +174,7 @@ class IAPService {
         );
       }
     } catch (error) {
-      console.error('Failed to load products:', error);
+      logger.error('Failed to load products', error);
       throw error;
     }
   }
@@ -182,13 +186,13 @@ class IAPService {
     // Purchase update listener
     this.purchaseUpdateSubscription = purchaseUpdatedListener(
       async (purchase: InAppPurchase | SubscriptionPurchase) => {
-        console.log('Purchase updated:', purchase);
+        logger.info('Purchase updated', { productId: purchase.productId });
 
         try {
           // Validate the receipt with our backend
           await this.validateAndProcessPurchase(purchase);
         } catch (error) {
-          console.error('Failed to process purchase:', error);
+          logger.error('Failed to process purchase', error);
           Alert.alert(
             'Purchase Error',
             'There was an error processing your purchase. Please contact support if the issue persists.'
@@ -200,7 +204,7 @@ class IAPService {
     // Purchase error listener
     this.purchaseErrorSubscription = purchaseErrorListener(
       (error: PurchaseError) => {
-        console.error('Purchase error:', error);
+        logger.error('Purchase error occurred', error);
 
         if (error.code === 'E_USER_CANCELLED') {
           // User cancelled, no need to show error
@@ -221,7 +225,7 @@ class IAPService {
   private async validateAndProcessPurchase(purchase: Purchase): Promise<void> {
     const { productId, purchaseToken, transactionReceipt, transactionId } = purchase;
 
-    console.log('Validating purchase:', { productId, transactionId });
+    logger.info('Validating purchase', { productId, transactionId });
 
     try {
       // Send receipt to our backend for validation
@@ -233,7 +237,7 @@ class IAPService {
       });
 
       if (validationResponse.data.success) {
-        console.log('Purchase validated successfully');
+        logger.info('Purchase validated successfully');
 
         // Track successful subscription purchase in analytics (best-effort)
         try {
@@ -275,7 +279,7 @@ class IAPService {
         );
       }
     } catch (error) {
-      console.error('Purchase validation failed:', error);
+      logger.error('Purchase validation failed', error);
 
       // Still finish the transaction to avoid getting stuck
       await this.finishPurchaseTransaction(purchase);
@@ -296,9 +300,9 @@ class IAPService {
           purchaseToken: purchase.purchaseToken!,
         });
       }
-      console.log('Transaction finished/acknowledged');
+      logger.info('Transaction finished and acknowledged');
     } catch (error) {
-      console.error('Failed to finish transaction:', error);
+      logger.error('Failed to finish transaction', error);
     }
   }
 
@@ -329,7 +333,7 @@ class IAPService {
         JSON.stringify(history)
       );
     } catch (error) {
-      console.error('Failed to save purchase info:', error);
+      logger.error('Failed to save purchase info', error);
     }
   }
 
@@ -339,13 +343,13 @@ class IAPService {
   private async processPendingPurchases(): Promise<void> {
     try {
       const purchases = await getAvailablePurchases();
-      console.log('Found pending purchases:', purchases.length);
+      logger.info('Found pending purchases', { count: purchases.length });
 
       for (const purchase of purchases) {
         await this.validateAndProcessPurchase(purchase);
       }
     } catch (error) {
-      console.error('Failed to process pending purchases:', error);
+      logger.error('Failed to process pending purchases', error);
     }
   }
 
@@ -372,7 +376,7 @@ class IAPService {
       await this.initialize();
     }
 
-    console.log('Purchasing subscription:', productId);
+    logger.info('Purchasing subscription', { productId });
 
     try {
       if (Platform.OS === 'ios') {
@@ -404,7 +408,7 @@ class IAPService {
         });
       }
     } catch (error: any) {
-      console.error('Purchase failed:', error);
+      logger.error('Purchase failed', error);
 
       if (error.code === 'E_USER_CANCELLED') {
         throw new IAPError(
@@ -430,11 +434,11 @@ class IAPService {
       await this.initialize();
     }
 
-    console.log('Restoring purchases...');
+    logger.info('Restoring purchases');
 
     try {
       const purchases = await getAvailablePurchases();
-      console.log('Found purchases to restore:', purchases.length);
+      logger.info('Found purchases to restore', { count: purchases.length });
 
       if (purchases.length === 0) {
         return { isActive: false };
@@ -463,7 +467,7 @@ class IAPService {
 
       return { isActive: false };
     } catch (error) {
-      console.error('Restore purchases failed:', error);
+      logger.error('Restore purchases failed', error);
       throw new IAPError(
         IAPErrorType.RESTORE_FAILED,
         'Failed to restore purchases',
@@ -505,7 +509,7 @@ class IAPService {
 
       return { isActive: false };
     } catch (error) {
-      console.error('Failed to check subscription status:', error);
+      logger.error('Failed to check subscription status', error);
       return { isActive: false };
     }
   }
@@ -518,7 +522,7 @@ class IAPService {
       const historyStr = await AsyncStorage.getItem(STORAGE_KEYS.PURCHASE_HISTORY);
       return historyStr ? JSON.parse(historyStr) : [];
     } catch (error) {
-      console.error('Failed to get purchase history:', error);
+      logger.error('Failed to get purchase history', error);
       return [];
     }
   }
@@ -531,9 +535,9 @@ class IAPService {
       await AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_SUBSCRIPTION);
       await AsyncStorage.removeItem(STORAGE_KEYS.PURCHASE_HISTORY);
       await AsyncStorage.removeItem(STORAGE_KEYS.RECEIPT_DATA);
-      console.log('Local purchase data cleared');
+      logger.info('Local purchase data cleared');
     } catch (error) {
-      console.error('Failed to clear local purchase data:', error);
+      logger.error('Failed to clear local purchase data', error);
     }
   }
 
@@ -552,9 +556,9 @@ class IAPService {
     try {
       await endConnection();
       this.isInitialized = false;
-      console.log('IAP Service disconnected');
+      logger.info('IAP Service disconnected');
     } catch (error) {
-      console.error('Failed to disconnect IAP:', error);
+      logger.error('Failed to disconnect IAP', error);
     }
   }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { VStack, Text, Box } from '@gluestack-ui/themed';
-import { colors, space, type as typography } from '@/theme/tokens';
+import { space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { PrimaryButton } from './PrimaryButton';
 import type { LucideIcon } from 'lucide-react-native';
 
@@ -24,6 +25,7 @@ export const EmptyStateNew: React.FC<EmptyStateProps> = ({
   description,
   action,
 }) => {
+  const { colors } = useThemedColors();
   return (
     <VStack space={space.lg} alignItems="center" py={space['2xl']} px={space.xl}>
       {Icon && (

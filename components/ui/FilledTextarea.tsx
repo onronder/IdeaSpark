@@ -1,6 +1,7 @@
 import React from 'react';
 import { Textarea, TextareaInput, VStack, Text, HStack } from '@gluestack-ui/themed';
-import { colors, radii, space } from '@/theme/tokens';
+import { radii } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 interface FilledTextareaProps {
   value: string;
@@ -31,6 +32,7 @@ export const FilledTextarea: React.FC<FilledTextareaProps> = ({
   numberOfLines = 4,
   ...props
 }) => {
+  const { colors } = useThemedColors();
   return (
     <VStack space="xs">
       {label && (

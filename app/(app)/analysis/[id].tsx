@@ -24,7 +24,8 @@ import {
   PrimaryButton,
   InlineNotice,
 } from '@/components/ui';
-import { colors, space } from '@/theme/tokens';
+import { space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 export default function IdeaAnalysisScreen() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function IdeaAnalysisScreen() {
   const ideaId = params.id as string;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { colors } = useThemedColors();
 
   const [activeTab, setActiveTab] = useState('canvas');
   const isPro = user?.subscriptionPlan === 'PRO';
@@ -64,7 +66,10 @@ export default function IdeaAnalysisScreen() {
 
   const handleExportPDF = () => {
     if (!isPro) {
-      router.push('/(app)/upgrade');
+      router.push({
+        pathname: '/(app)/upgrade',
+        params: { source: 'analysis_export_pdf' },
+      });
       return;
     }
     // Implement PDF export
@@ -106,7 +111,11 @@ export default function IdeaAnalysisScreen() {
               message="Upgrade to Pro to export your analysis as PDF"
               action={{
                 label: 'Upgrade Now',
-                onPress: () => router.push('/(app)/upgrade'),
+                onPress: () =>
+                  router.push({
+                    pathname: '/(app)/upgrade',
+                    params: { source: 'analysis_quota_banner' },
+                  }),
               }}
             />
           )}

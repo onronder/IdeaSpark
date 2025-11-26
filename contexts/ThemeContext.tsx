@@ -3,10 +3,11 @@ import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './SupabaseAuthContext';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useUpdateTheme } from '@/hooks/useApi';
 
 interface ThemeContextValue {
   isDarkMode: boolean;
-  toggleDarkMode: () => void;
+  toggleDarkMode: () => Promise<void>;
   colorMode: 'light' | 'dark';
 }
 
@@ -16,6 +17,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const systemColorScheme = useColorScheme();
   const { user } = useAuth();
   const { handleError, logger } = useErrorHandler('ThemeContext');
+  const updateTheme = useUpdateTheme();
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Initialize theme from user preferences or system
@@ -23,10 +25,18 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     const initializeTheme = async () => {
       try {
         // First check user preferences if logged in
-        if (user?.preferences?.darkMode !== undefined) {
-          setIsDarkMode(user.preferences.darkMode);
+        if (user?.preferences && typeof (user.preferences as any).theme === 'string') {
+          const userTheme = (user.preferences as any).theme;
+          if (userTheme === 'dark') {
+            setIsDarkMode(true);
+          } else if (userTheme === 'light') {
+            setIsDarkMode(false);
+          } else if (userTheme === 'system') {
+            setIsDarkMode(systemColorScheme === 'dark');
+          }
           logger.info('Theme initialized from user preferences', {
-            darkMode: user.preferences.darkMode
+            theme: userTheme,
+            isDarkMode: userTheme === 'dark' || (userTheme === 'system' && systemColorScheme === 'dark')
           });
         } else {
           // Otherwise check local storage
@@ -54,7 +64,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     };
 
     initializeTheme();
-  }, [user, systemColorScheme]);
+  }, [user?.id, systemColorScheme]);
 
   const toggleDarkMode = async () => {
     try {
@@ -64,8 +74,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       // Save to local storage
       await AsyncStorage.setItem('theme_preference', newMode ? 'dark' : 'light');
 
-      // TODO: Update user preferences on server when API is available
+      // Update user preferences on server
       if (user) {
+        await updateTheme.mutateAsync(newMode ? 'dark' : 'light');
         logger.logUserAction('dark_mode_toggled', {
           newMode: newMode ? 'dark' : 'light',
           userId: user.id

@@ -36,7 +36,7 @@ export function useAnalytics() {
     };
 
     init().catch((err) => {
-      console.warn('Analytics init failed', err);
+      logger.warn('Analytics init failed', err);
     });
   }, [user?.id]);
 
@@ -108,6 +108,11 @@ export function useAnalytics() {
     analyticsService.reset();
   }, []);
 
+  // Flush queued events (for testing)
+  const flushAnalytics = useCallback(() => {
+    analyticsService.flush();
+  }, []);
+
   // Update user consent and ensure identification is in sync
   const setUserConsent = useCallback(
     async (consent: boolean) => {
@@ -137,7 +142,7 @@ export function useAnalytics() {
           await analyticsService.reset();
         }
       } catch (err) {
-        console.warn('Failed to update analytics consent', err);
+        logger.warn('Failed to update analytics consent', err);
       }
     },
     [
@@ -159,6 +164,7 @@ export function useAnalytics() {
     trackSubscriptionPurchased,
     trackError,
     resetAnalytics,
+    flushAnalytics,
     setUserConsent,
   };
 }

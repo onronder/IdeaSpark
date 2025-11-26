@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, HStack, Text, Box } from '@gluestack-ui/themed';
 import { ChevronRight } from 'lucide-react-native';
-import { colors, space, radii } from '@/theme/tokens';
+import { space, radii } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import type { LucideIcon } from 'lucide-react-native';
 
 interface SettingsRowProps {
@@ -25,6 +26,7 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
   destructive = false,
   isDisabled = false,
 }) => {
+  const { colors } = useThemedColors();
   return (
     <Pressable
       onPress={onPress}

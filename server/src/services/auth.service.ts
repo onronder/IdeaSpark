@@ -314,11 +314,17 @@ export class AuthService {
       },
     });
 
-    // TODO: Send reset email with resetToken
-    authLogger.info({ userId: user.id }, 'Password reset token created');
+    // Send reset email
+    const { emailService } = await import('./email.service');
+    await emailService.sendPasswordResetEmail({
+      email: user.email,
+      resetToken,
+      name: user.name || undefined,
+    });
 
-    // In production, send email with reset link
-    // For now, log the token in development
+    authLogger.info({ userId: user.id }, 'Password reset email sent');
+
+    // In development, also log the token for testing
     if (config.isDevelopment) {
       authLogger.info({ resetToken }, 'Password reset token (dev only)');
     }

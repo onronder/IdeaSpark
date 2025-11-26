@@ -1,6 +1,7 @@
 import React from 'react';
 import { HStack, VStack, Text, Switch, Box } from '@gluestack-ui/themed';
-import { colors, space, radii } from '@/theme/tokens';
+import { space, radii } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import type { LucideIcon } from 'lucide-react-native';
 
 interface ToggleRowProps {
@@ -24,6 +25,7 @@ export const ToggleRow: React.FC<ToggleRowProps> = ({
   onValueChange,
   isDisabled = false,
 }) => {
+  const { colors } = useThemedColors();
   return (
     <HStack py={space.md} space="md" alignItems="center" justifyContent="space-between" minHeight={48}>
       <HStack space="md" alignItems="center" flex={1}>

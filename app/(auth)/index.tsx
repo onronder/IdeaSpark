@@ -25,7 +25,8 @@ import {
   InlineNotice,
   SectionCard,
 } from "@/components/ui";
-import { colors, space } from "@/theme/tokens";
+import { space } from "@/theme/tokens";
+import { useThemedColors } from "@/hooks/useThemedColors";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function AuthScreen() {
   const { handleError, logger } = useErrorHandler("AuthScreen");
   const insets = useSafeAreaInsets();
   const { trackLogin, trackSignup } = useAnalytics();
+  const { colors } = useThemedColors();
 
   const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
   const [formData, setFormData] = useState({
@@ -214,6 +216,14 @@ export default function AuthScreen() {
                   onPress={handleSubmit}
                   isLoading={isLoading}
                   isDisabled={isLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    authMode === 'login'
+                      ? 'Sign in to your IdeaSpark account'
+                      : authMode === 'signup'
+                      ? 'Create a new IdeaSpark account'
+                      : 'Send password reset email'
+                  }
                 >
                   {authMode === "login" && "Sign In"}
                   {authMode === "signup" && "Create Account"}
@@ -224,12 +234,20 @@ export default function AuthScreen() {
                 <VStack space="sm" alignItems="center">
                   {authMode === "login" && (
                     <>
-                      <Pressable onPress={() => setAuthMode("signup")}>
+                      <Pressable
+                        onPress={() => setAuthMode("signup")}
+                        accessibilityRole="button"
+                        accessibilityLabel="Switch to sign up"
+                      >
                         <Text color={colors.brand[600]} fontSize="$sm" fontWeight="$medium">
                           Don't have an account? Sign up
                         </Text>
                       </Pressable>
-                      <Pressable onPress={() => setAuthMode("forgot")}>
+                      <Pressable
+                        onPress={() => setAuthMode("forgot")}
+                        accessibilityRole="button"
+                        accessibilityLabel="Reset your password"
+                      >
                         <Text color={colors.textSecondary} fontSize="$sm">
                           Forgot password?
                         </Text>
@@ -238,7 +256,11 @@ export default function AuthScreen() {
                   )}
 
                   {authMode === "signup" && (
-                    <Pressable onPress={() => setAuthMode("login")}>
+                    <Pressable
+                      onPress={() => setAuthMode("login")}
+                      accessibilityRole="button"
+                      accessibilityLabel="Back to sign in"
+                    >
                       <Text color={colors.brand[600]} fontSize="$sm" fontWeight="$medium">
                         Already have an account? Sign in
                       </Text>
@@ -246,7 +268,11 @@ export default function AuthScreen() {
                   )}
 
                   {authMode === "forgot" && (
-                    <Pressable onPress={() => setAuthMode("login")}>
+                    <Pressable
+                      onPress={() => setAuthMode("login")}
+                      accessibilityRole="button"
+                      accessibilityLabel="Back to sign in"
+                    >
                       <Text color={colors.brand[600]} fontSize="$sm" fontWeight="$medium">
                         Back to sign in
                       </Text>

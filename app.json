@@ -75,6 +75,9 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "amplitudeApiKey": "28621333e5c5809d2e55b64bb514dd7f"
     }
   }
 }

@@ -76,7 +76,11 @@ export function useMessages(ideaId: string | null) {
       return response.data || [];
     },
     enabled: !!ideaId,
-    refetchInterval: 5000, // Poll every 5 seconds for new messages
+    // Let consumers decide when to refetch (e.g., ChatScreen polls
+    // only while waiting for an AI reply) to avoid unnecessary
+    // background traffic and re-renders on every screen.
+    staleTime: 10 * 1000,
+    keepPreviousData: true,
   });
 }
 
@@ -202,6 +206,62 @@ export function useCancelSubscription() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
       queryClient.invalidateQueries({ queryKey: ['usage'] });
+    },
+  });
+}
+
+// Notification preferences
+export function useUpdateNotificationPreferences() {
+  const queryClient = useQueryClient();
+  const { updateUser } = useAuth();
+
+  return useMutation({
+    mutationFn: async (preferences: {
+      email?: boolean;
+      push?: boolean;
+      marketing?: boolean;
+      ideaUpdates?: boolean;
+      weeklyDigest?: boolean;
+    }) => {
+      const response = await apiClient.patch('/users/notifications', preferences);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data) {
+        updateUser(data);
+      }
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
+    },
+  });
+}
+
+// Theme preference
+export function useUpdateTheme() {
+  const queryClient = useQueryClient();
+  const { updateUser } = useAuth();
+
+  return useMutation({
+    mutationFn: async (theme: 'light' | 'dark' | 'system') => {
+      const response = await apiClient.patch('/users/theme', { theme });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data) {
+        updateUser(data);
+      }
+      queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
+    },
+  });
+}
+
+// Account deletion
+export function useDeleteAccount() {
+  return useMutation({
+    mutationFn: async (password: string) => {
+      const response = await apiClient.delete('/users/me', {
+        data: { password },
+      });
+      return response.data;
     },
   });
 }

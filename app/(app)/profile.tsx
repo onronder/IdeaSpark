@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useUpdateNotificationPreferences, useDeleteAccount } from '@/hooks/useApi';
 import {
   HeaderGradient,
   SectionCard,
@@ -33,24 +34,41 @@ import {
   ToggleRow,
   PrimaryButton,
   InlineNotice,
+  ChangePasswordModal,
+  DeleteAccountModal,
 } from '@/components/ui';
-import { colors, space } from '@/theme/tokens';
+import { space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
-  const { colorMode } = useTheme();
+  const { user, signOut, changePassword } = useAuth();
+  const { colorMode, toggleDarkMode } = useTheme();
   const toast = useToast();
   const { handleError, logger } = useErrorHandler('ProfileScreen');
   const { setUserConsent } = useAnalytics();
+  const { colors } = useThemedColors();
+  const updateNotificationPreferences = useUpdateNotificationPreferences();
+  const deleteAccount = useDeleteAccount();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [darkMode, setDarkMode] = useState(colorMode === 'dark');
-  const [notifications, setNotifications] = useState(true);
-  const [marketingEmails, setMarketingEmails] = useState(false);
+  const [notifications, setNotifications] = useState<boolean>(() => {
+    const prefs = (user as any)?.preferences || {};
+    const notif = prefs.notifications || {};
+    return typeof notif.push === 'boolean' ? notif.push : true;
+  });
+  const [marketingEmails, setMarketingEmails] = useState<boolean>(() => {
+    const prefs = (user as any)?.preferences || {};
+    const notif = prefs.notifications || {};
+    return typeof notif.marketing === 'boolean' ? notif.marketing : false;
+  });
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const isPro = user?.subscriptionPlan === 'PRO';
 
@@ -89,40 +107,36 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleDeleteAccount = () => {
-    RNAlert.alert(
-      'Delete Account',
-      'Are you sure? This action cannot be undone and all your data will be permanently deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Add delete account logic here
-              toast.success('Account Deleted', 'Your account has been deleted');
-              await signOut();
-              router.replace('/(auth)');
-            } catch (error: any) {
-              handleError(error, 'Failed to delete account');
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteAccountConfirm = async (password: string) => {
+    try {
+      await deleteAccount.mutateAsync(password);
+      toast.success('Account Deleted', 'Your account has been permanently deleted');
+      setTimeout(async () => {
+        await signOut();
+        router.replace('/(auth)');
+      }, 1000);
+    } catch (error: any) {
+      handleError(error, error.message || 'Failed to delete account');
+      throw error;
+    }
   };
 
-  const handleDarkModeToggle = (value: boolean) => {
-    setDarkMode(value);
-    // Wire up to actual theme toggle
-    // toggleColorMode();
-    toast.showToast({
-      type: 'info',
-      title: 'Coming Soon',
-      message: 'Dark mode will be available in the next update',
-      duration: 3000,
-    });
+  const handleDarkModeToggle = async (value: boolean) => {
+    try {
+      setDarkMode(value);
+      await toggleDarkMode();
+      toast.showToast({
+        type: 'success',
+        title: value ? 'Dark mode enabled' : 'Dark mode disabled',
+        message: value
+          ? 'IdeaSpark will now use a darker theme that is easier on your eyes.'
+          : 'Switched back to the light theme.',
+        duration: 2500,
+      });
+    } catch (error: any) {
+      setDarkMode(!value);
+      handleError(error, 'Failed to toggle dark mode');
+    }
   };
 
   const handleAnalyticsToggle = async (value: boolean) => {
@@ -143,8 +157,66 @@ export default function ProfileScreen() {
     }
   };
 
+  const handlePushNotificationsToggle = async (value: boolean) => {
+    setNotifications(value);
+    try {
+      await updateNotificationPreferences.mutateAsync({
+        push: value,
+      });
+      toast.showToast({
+        type: 'success',
+        title: value ? 'Push notifications enabled' : 'Push notifications disabled',
+        message: value
+          ? 'You will now receive notifications about your ideas.'
+          : 'Push notifications have been turned off.',
+        duration: 2500,
+      });
+    } catch (error: any) {
+      setNotifications(!value);
+      handleError(error, 'Failed to update notification preferences');
+    }
+  };
+
+  const handleMarketingEmailsToggle = async (value: boolean) => {
+    setMarketingEmails(value);
+    try {
+      await updateNotificationPreferences.mutateAsync({
+        marketing: value,
+      });
+      toast.showToast({
+        type: 'success',
+        title: value ? 'Marketing emails enabled' : 'Marketing emails disabled',
+        message: value
+          ? 'You will receive tips and product updates via email.'
+          : 'Marketing emails have been turned off.',
+        duration: 2500,
+      });
+    } catch (error: any) {
+      setMarketingEmails(!value);
+      handleError(error, 'Failed to update email preferences');
+    }
+  };
+
+  const handleChangePasswordSubmit = async (currentPassword: string, newPassword: string) => {
+    try {
+      setIsChangingPassword(true);
+      await changePassword(currentPassword, newPassword);
+      toast.success('Password Changed', 'You will be signed out. Please sign in with your new password.');
+    } catch (error: any) {
+      handleError(error, error.message || 'Failed to change password');
+      throw error;
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   return (
-    <Box flex={1} bg={colors.surfaceMuted}>
+    <Box
+      flex={1}
+      bg={colors.surfaceMuted}
+      accessible
+      accessibilityLabel="Profile and settings"
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -155,7 +227,12 @@ export default function ProfileScreen() {
           greeting="Profile"
           name={user?.name || 'User'}
           showUpgradeButton={!isPro}
-          onUpgrade={() => router.push('/(app)/upgrade')}
+          onUpgrade={() =>
+            router.push({
+              pathname: '/(app)/upgrade',
+              params: { source: 'profile_header' },
+            })
+          }
         />
 
         <VStack space="lg" px={space.lg} py={space.lg}>
@@ -209,21 +286,19 @@ export default function ProfileScreen() {
                   <SettingsRow
                     icon={Sparkles}
                     label="Upgrade to Pro"
-                    onPress={() => router.push('/(app)/upgrade')}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(app)/upgrade',
+                        params: { source: 'profile_settings_row' },
+                      })
+                    }
                   />
                 )}
                 <Divider bg={colors.borderMuted} />
                 <SettingsRow
                   icon={Lock}
                   label="Change Password"
-                  onPress={() => {
-                    toast.showToast({
-                      type: 'info',
-                      title: 'Coming Soon',
-                      message: 'Password change will be available soon',
-                      duration: 3000,
-                    });
-                  }}
+                  onPress={() => setShowChangePasswordModal(true)}
                 />
               </VStack>
             </SectionCard>
@@ -255,7 +330,8 @@ export default function ProfileScreen() {
                   label="Push Notifications"
                   description="Receive notifications about your ideas"
                   value={notifications}
-                  onValueChange={setNotifications}
+                  onValueChange={handlePushNotificationsToggle}
+                  isDisabled={updateNotificationPreferences.isPending}
                 />
                 <Divider bg={colors.borderMuted} />
                 <ToggleRow
@@ -263,7 +339,8 @@ export default function ProfileScreen() {
                   label="Marketing Emails"
                   description="Receive tips and product updates"
                   value={marketingEmails}
-                  onValueChange={setMarketingEmails}
+                  onValueChange={handleMarketingEmailsToggle}
+                  isDisabled={updateNotificationPreferences.isPending}
                 />
                 <Divider bg={colors.borderMuted} />
                 <ToggleRow
@@ -332,7 +409,7 @@ export default function ProfileScreen() {
                   icon={Trash2}
                   label="Delete Account"
                   destructive
-                  onPress={handleDeleteAccount}
+                  onPress={() => setShowDeleteAccountModal(true)}
                 />
               </VStack>
             </SectionCard>
@@ -344,6 +421,23 @@ export default function ProfileScreen() {
           </Text>
         </VStack>
       </ScrollView>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        onSuccess={() => {}}
+        onSubmit={handleChangePasswordSubmit}
+        isLoading={isChangingPassword}
+      />
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        isOpen={showDeleteAccountModal}
+        onClose={() => setShowDeleteAccountModal(false)}
+        onConfirm={handleDeleteAccountConfirm}
+        isLoading={deleteAccount.isPending}
+      />
     </Box>
   );
 }

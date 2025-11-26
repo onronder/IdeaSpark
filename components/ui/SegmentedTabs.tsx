@@ -1,6 +1,7 @@
 import React from 'react';
 import { HStack, Pressable, Text } from '@gluestack-ui/themed';
-import { colors, radii, space } from '@/theme/tokens';
+import { radii, space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 interface Tab {
   key: string;
@@ -22,6 +23,7 @@ export const SegmentedTabs: React.FC<SegmentedTabsProps> = ({
   activeTab,
   onTabChange,
 }) => {
+  const { colors } = useThemedColors();
   return (
     <HStack
       bg={colors.surfaceMuted}

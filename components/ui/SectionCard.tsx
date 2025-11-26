@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box } from '@gluestack-ui/themed';
-import { colors, radii, space, shadows } from '@/theme/tokens';
+import { radii, space, shadows } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 interface SectionCardProps {
   children: React.ReactNode;
@@ -17,6 +18,8 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   noPadding = false,
   ...props
 }) => {
+  const { colors } = useThemedColors();
+
   return (
     <Box
       bg={colors.surface}

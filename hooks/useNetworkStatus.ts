@@ -20,7 +20,7 @@ export const useNetworkStatus = () => {
           setIsChecking(false);
         }
       } catch (error) {
-        console.error('Error checking network status:', error);
+        logger.error('Error checking network status:', error);
         if (mounted) {
           setIsOnline(true); // Default to online if check fails
           setIsChecking(false);

@@ -1,9 +1,23 @@
-import { init, track, identify, Identify, setGroup, Revenue, revenue, add } from '@amplitude/analytics-react-native';
-import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
+import * as amplitude from '@amplitude/analytics-react-native';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('AnalyticsService');
+
 import * as Device from 'expo-device';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('AnalyticsService');
+
 import Constants from 'expo-constants';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('AnalyticsService');
+
 import { Platform } from 'react-native';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('AnalyticsService');
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('AnalyticsService');
+
 
 /**
  * Analytics Service
@@ -29,55 +43,81 @@ class AnalyticsService {
       this.userConsent = params?.userConsent ?? (consentStored === 'true');
 
       if (!this.userConsent) {
-        console.log('Analytics consent not granted');
+        logger.info('Analytics consent not granted');
         return;
       }
 
       // Get Amplitude API key from environment
       // Prefer EXPO_PUBLIC_AMPLITUDE_API_KEY so the same name is used
       // across mobile and backend, but fall back to AMPLITUDE_API_KEY
-      // to support existing local .env files.
+      // (legacy) and expo extra config for flexibility.
       const amplitudeApiKey =
         process.env.EXPO_PUBLIC_AMPLITUDE_API_KEY ||
         process.env.AMPLITUDE_API_KEY ||
         Constants.expoConfig?.extra?.amplitudeApiKey;
 
       if (!amplitudeApiKey) {
-        console.warn('Amplitude API key not configured');
+        logger.warn('Amplitude API key not configured');
         return;
       }
 
       // Generate or retrieve session ID
       this.sessionId = await this.getOrCreateSessionId();
 
-      // Initialize Amplitude
-      const client = init(amplitudeApiKey, params?.userId, {
-        trackingOptions: {
-          ipAddress: false, // Don't track IP for privacy
-        },
-        defaultTracking: {
-          sessions: true,
-          appLifecycles: true,
-          screenViews: true,
-        },
-      });
-
-      // Ensure underlying client is ready
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      client.promise.catch((err) => {
-        console.warn('Amplitude init failed', err);
-      });
-
-      // Best-effort Session Replay plugin (only works on native builds, not Expo Go)
+      // Polyfill a minimal global document object so Amplitude's
+      // cookie-based storage checks don't crash in React Native.
       try {
-        const plugin = new SessionReplayPlugin();
-        const addResult = add(plugin);
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        addResult.promise.catch((err) => {
-          console.warn('Amplitude Session Replay plugin failed to initialize', err);
-        });
-      } catch (pluginError) {
-        console.warn('Session Replay plugin not available or failed to load', pluginError);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const globalScope: any = globalThis || global;
+        if (globalScope && !globalScope.document) {
+          globalScope.document = { cookie: '' };
+        } else if (globalScope && typeof globalScope.document.cookie === 'undefined') {
+          globalScope.document.cookie = '';
+        }
+      } catch {
+        // If polyfill fails, we still proceed; the SDK may fall back to local/memory storage.
+      }
+
+      // Initialize Amplitude
+      // The SDK logs an internal cookie test error in some dev setups,
+      // which shows as a red screen in React Native because it uses console.error.
+      // Temporarily silence just that specific log during initialization.
+      const originalConsoleError = console.error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      console.error = (...args: any[]) => {
+        // Ignore the noisy internal cookie test error from the Amplitude SDK
+        // that can appear in some React Native dev setups.
+        const shouldIgnore = args.some(
+          (arg) =>
+            typeof arg === 'string' &&
+            arg.includes('Failed to set cookie for key: AMP_TEST')
+        );
+
+        if (shouldIgnore) {
+          return;
+        }
+
+        // Forward all other errors
+        // eslint-disable-next-line prefer-spread
+        originalConsoleError.apply(console, args as never);
+      };
+
+      try {
+        // Initialize Amplitude using official pattern
+        await amplitude.init(amplitudeApiKey, params?.userId, {
+          logLevel: amplitude.Types.LogLevel.Debug, // Debug logging for troubleshooting
+          flushIntervalMillis: 1000, // Flush every second
+          flushQueueSize: 5, // Flush after 5 events (lower for testing)
+          trackingOptions: {
+            ipAddress: false, // Don't track IP for privacy
+          },
+        }).promise;
+
+        logger.info('✅ Amplitude initialized successfully');
+      } catch (err) {
+        logger.warn('Amplitude init failed', err);
+      } finally {
+        console.error = originalConsoleError;
       }
 
       if (params?.userId) {
@@ -85,9 +125,9 @@ class AnalyticsService {
       }
 
       this.isInitialized = true;
-      console.log('Analytics initialized');
+      logger.info('Analytics initialized');
     } catch (error) {
-      console.error('Failed to initialize analytics:', error);
+      logger.error('Failed to initialize analytics:', error);
     }
   }
 
@@ -140,11 +180,12 @@ class AnalyticsService {
         sessionId: this.sessionId,
       };
 
-      await track(eventName, enrichedProperties);
+      await amplitude.track(eventName, enrichedProperties).promise;
 
-      console.log('Event tracked:', eventName, enrichedProperties);
+      logger.info('✅ Event tracked successfully:', eventName);
+      logger.info('📊 Event properties:', JSON.stringify(enrichedProperties, null, 2));
     } catch (error) {
-      console.error('Failed to track event:', error);
+      logger.error('Failed to track event:', error);
     }
   }
 
@@ -164,7 +205,7 @@ class AnalyticsService {
 
       this.userId = userId;
 
-      const identifyObj = new Identify();
+      const identifyObj = new amplitude.Identify();
 
       // Set user properties
       Object.entries(properties).forEach(([key, value]) => {
@@ -176,11 +217,11 @@ class AnalyticsService {
       identifyObj.set('deviceModel', Device.modelName || 'Unknown');
       identifyObj.set('appVersion', Constants.expoConfig?.version || '1.0.0');
 
-      await identify(identifyObj, undefined, { user_id: userId });
+      await amplitude.identify(identifyObj, { user_id: userId }).promise;
 
-      console.log('User identified:', userId);
+      logger.info('User identified:', userId);
     } catch (error) {
-      console.error('Failed to identify user:', error);
+      logger.error('Failed to identify user:', error);
     }
   }
 
@@ -198,11 +239,11 @@ class AnalyticsService {
     try {
       const { groupType, groupName } = params;
 
-      await setGroup(groupType, groupName);
+      await amplitude.setGroup(groupType, groupName).promise;
 
-      console.log('User group set:', groupType, groupName);
+      logger.info('User group set:', groupType, groupName);
     } catch (error) {
-      console.error('Failed to set user group:', error);
+      logger.error('Failed to set user group:', error);
     }
   }
 
@@ -222,7 +263,7 @@ class AnalyticsService {
     try {
       const { amount, productId, quantity = 1, revenueType } = params;
 
-      const revenueEvent = new Revenue()
+      const revenueEvent = new amplitude.Revenue()
         .setProductId(productId)
         .setPrice(amount)
         .setQuantity(quantity);
@@ -231,11 +272,11 @@ class AnalyticsService {
         revenueEvent.setRevenueType(revenueType);
       }
 
-      await revenue(revenueEvent);
+      await amplitude.revenue(revenueEvent).promise;
 
-      console.log('Revenue tracked:', amount, productId);
+      logger.info('Revenue tracked:', amount, productId);
     } catch (error) {
-      console.error('Failed to track revenue:', error);
+      logger.error('Failed to track revenue:', error);
     }
   }
 
@@ -292,11 +333,21 @@ class AnalyticsService {
     ideaId: string;
     messageLength: number;
   }): Promise<void> {
+    const bucket =
+      params.messageLength < 50
+        ? 'short'
+        : params.messageLength < 200
+        ? 'medium'
+        : params.messageLength < 500
+        ? 'long'
+        : 'very_long';
+
     await this.trackEvent({
       eventName: 'message_sent',
       properties: {
         idea_id: params.ideaId,
         message_length: params.messageLength,
+        message_length_bucket: bucket,
       },
     });
   }
@@ -362,7 +413,24 @@ class AnalyticsService {
 
     if (this.isInitialized) {
       // Amplitude reset is handled automatically on next identify
-      console.log('Analytics reset');
+      logger.info('Analytics reset');
+    }
+  }
+
+  /**
+   * Manually flush queued events (useful for testing)
+   */
+  async flush(): Promise<void> {
+    if (!this.isInitialized || !this.userConsent) {
+      logger.info('Cannot flush: Analytics not initialized or consent not granted');
+      return;
+    }
+
+    try {
+      await amplitude.flush().promise;
+      logger.info('✅ Analytics events flushed to server');
+    } catch (error) {
+      logger.error('Failed to flush analytics:', error);
     }
   }
 

@@ -32,7 +32,8 @@ import {
   PrimaryButton,
   InlineNotice,
 } from '@/components/ui';
-import { colors, space } from '@/theme/tokens';
+import { space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 // Categories with icons
 const CATEGORIES = [
@@ -53,6 +54,7 @@ export default function HomeScreen() {
   const { handleError, logger } = useErrorHandler('HomeScreen');
   const { isOnline } = useNetworkStatus();
    const { trackIdeaCreated } = useAnalytics();
+  const { colors } = useThemedColors();
 
   const [formData, setFormData] = useState({
     title: '',
@@ -114,7 +116,11 @@ export default function HomeScreen() {
           message: "You've reached your free plan limit. Upgrade to Pro for unlimited ideas!",
           action: {
             label: 'Upgrade Now',
-            onPress: () => router.push('/(app)/upgrade'),
+            onPress: () =>
+              router.push({
+                pathname: '/(app)/upgrade',
+                params: { source: 'home_quota_error' },
+              }),
           },
           duration: 7000,
         });
@@ -154,7 +160,13 @@ export default function HomeScreen() {
   const canSubmit = formData.title.trim() && formData.description.trim() && isOnline && !createIdea.isPending;
 
   return (
-    <Box flex={1} bg={colors.surfaceMuted}>
+    <Box
+      flex={1}
+      bg={colors.surfaceMuted}
+      accessible
+      accessibilityLabel="IdeaSpark home"
+      accessibilityRole="summary"
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -166,7 +178,12 @@ export default function HomeScreen() {
           greeting={getGreeting()}
           name={user?.name || 'Innovator'}
           usageText={getUsageText()}
-          onUpgrade={() => router.push('/(app)/upgrade')}
+          onUpgrade={() =>
+            router.push({
+              pathname: '/(app)/upgrade',
+              params: { source: 'home_header_button' },
+            })
+          }
           showUpgradeButton={!isPro}
         />
 
@@ -190,7 +207,11 @@ export default function HomeScreen() {
                   message={`You have ${usage.remainingSessions} idea session${usage.remainingSessions !== 1 ? 's' : ''} left. Upgrade to Pro for unlimited ideas!`}
                   action={{
                     label: 'Upgrade Now',
-                    onPress: () => router.push('/(app)/upgrade'),
+                    onPress: () =>
+                      router.push({
+                        pathname: '/(app)/upgrade',
+                        params: { source: 'home_quota_banner' },
+                      }),
                   }}
                 />
               )}
@@ -207,15 +228,14 @@ export default function HomeScreen() {
           )}
 
           {/* Main Idea Creation Card */}
-          <SectionCard>
+          <SectionCard
+            accessible
+            accessibilityRole="form"
+            accessibilityLabel="Describe your idea and refine it with AI"
+          >
             <VStack space="xl">
               <VStack space="xs">
-                <Text
-                  color={colors.textPrimary}
-                  fontSize="$2xl"
-                  fontWeight="$bold"
-                  textAlign="center"
-                >
+                <Text color={colors.textPrimary} fontSize="$2xl" fontWeight="$bold" textAlign="center">
                   Spark Your Next Big Idea
                 </Text>
                 <Text
@@ -284,6 +304,8 @@ export default function HomeScreen() {
                 onPress={handleSubmit}
                 isDisabled={!canSubmit}
                 isLoading={createIdea.isPending}
+                accessibilityRole="button"
+                accessibilityLabel="Submit your idea to refine it with AI"
               >
                 {createIdea.isPending ? 'Creating...' : 'Refine My Idea with AI ✨'}
               </PrimaryButton>
@@ -316,7 +338,12 @@ export default function HomeScreen() {
               icon={Rocket}
               title="Unlimited with Pro"
               description="Upgrade to Pro for unlimited ideas and AI conversations"
-              onPress={() => router.push('/(app)/upgrade')}
+              onPress={() =>
+                router.push({
+                  pathname: '/(app)/upgrade',
+                  params: { source: 'home_feature_card' },
+                })
+              }
             />
           </VStack>
         </VStack>

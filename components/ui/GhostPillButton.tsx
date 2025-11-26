@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, Text } from '@gluestack-ui/themed';
-import { colors, radii } from '@/theme/tokens';
+import { radii } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 interface GhostPillButtonProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ export const GhostPillButton: React.FC<GhostPillButtonProps> = ({
   size = 'md',
   ...props
 }) => {
+  const { colors } = useThemedColors();
   const sizeStyles = {
     sm: { paddingVertical: 6, paddingHorizontal: 12, fontSize: 12 },
     md: { paddingVertical: 8, paddingHorizontal: 16, fontSize: 14 },

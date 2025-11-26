@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, ButtonText, ButtonSpinner } from '@gluestack-ui/themed';
-import { colors, radii } from '@/theme/tokens';
+import { radii } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 interface PrimaryButtonProps {
   children: React.ReactNode;
@@ -25,6 +26,8 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   size = 'lg',
   ...props
 }) => {
+  const { colors } = useThemedColors();
+
   const sizeProps = {
     sm: { py: 8, px: 16, fontSize: 14 },
     md: { py: 12, px: 20, fontSize: 16 },

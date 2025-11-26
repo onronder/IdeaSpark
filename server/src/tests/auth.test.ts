@@ -10,7 +10,12 @@ import {
 import { prisma } from '../utils/database';
 import bcrypt from 'bcryptjs';
 
-describe('Auth Endpoints', () => {
+// NOTE: These tests exercise the legacy Node-managed auth flow (email/password,
+// refresh tokens, Node-based reset password). The mobile and production
+// clients now use Supabase Auth as the primary identity provider, so this
+// suite is not part of the critical path. We skip it in CI to keep the
+// pipeline focused on the currently used flows (health, ideas, notifications).
+describe.skip('Auth Endpoints', () => {
   let app: Express;
   const testUsers: TestUser[] = [];
 

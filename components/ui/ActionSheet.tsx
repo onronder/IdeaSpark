@@ -1,7 +1,8 @@
 import React from 'react';
 import { Modal } from '@gluestack-ui/themed';
 import { Box, VStack, Text, Pressable } from '@gluestack-ui/themed';
-import { colors, radii, space, shadows } from '@/theme/tokens';
+import { radii, space, shadows } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ActionSheetOption {
@@ -29,6 +30,7 @@ export const ActionSheet: React.FC<ActionSheetProps> = ({
   options,
 }) => {
   const insets = useSafeAreaInsets();
+   const { colors } = useThemedColors();
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>

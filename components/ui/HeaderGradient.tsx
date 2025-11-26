@@ -2,7 +2,8 @@ import React from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Box, HStack, VStack, Text } from '@gluestack-ui/themed';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, space, gradients, type as typography } from '@/theme/tokens';
+import { space, gradients, type as typography } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { GhostPillButton } from './GhostPillButton';
 
 interface HeaderGradientProps {
@@ -25,11 +26,16 @@ export const HeaderGradient: React.FC<HeaderGradientProps> = ({
   showUpgradeButton = true,
 }) => {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useThemedColors();
+
+  const gradientColors = isDark
+    ? ['#020617', '#111827'] // darker header in dark mode
+    : gradients.primary;
 
   return (
     <Box>
       <LinearGradient
-        colors={gradients.primary}
+        colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={{

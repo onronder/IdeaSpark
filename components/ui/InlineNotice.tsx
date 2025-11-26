@@ -1,7 +1,8 @@
 import React from 'react';
 import { HStack, VStack, Text, Box, Pressable } from '@gluestack-ui/themed';
 import { Info, AlertTriangle, CheckCircle, XCircle, X } from 'lucide-react-native';
-import { colors, radii, space } from '@/theme/tokens';
+import { radii, space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 interface InlineNoticeProps {
   type: 'info' | 'success' | 'warning' | 'error';
@@ -25,33 +26,34 @@ export const InlineNotice: React.FC<InlineNoticeProps> = ({
   action,
   onDismiss,
 }) => {
+  const { colors, isDark } = useThemedColors();
   const config = {
     info: {
-      bg: colors.brand[50],
+      bg: isDark ? 'rgba(59,130,246,0.12)' : colors.brand[50],
       borderColor: colors.brand[200],
-      iconColor: colors.brand[600],
-      textColor: colors.brand[900],
+      iconColor: colors.brand[500],
+      textColor: isDark ? colors.brand[100] : colors.brand[900],
       Icon: Info,
     },
     success: {
-      bg: colors.successLight,
+      bg: isDark ? 'rgba(34,197,94,0.12)' : colors.successLight,
       borderColor: colors.success,
       iconColor: colors.success,
-      textColor: colors.textPrimary,
+      textColor: isDark ? colors.success : colors.textPrimary,
       Icon: CheckCircle,
     },
     warning: {
-      bg: colors.warningLight,
+      bg: isDark ? 'rgba(234,179,8,0.12)' : colors.warningLight,
       borderColor: colors.warning,
       iconColor: colors.warning,
-      textColor: colors.textPrimary,
+      textColor: isDark ? colors.warning : colors.textPrimary,
       Icon: AlertTriangle,
     },
     error: {
-      bg: colors.errorLight,
+      bg: isDark ? 'rgba(248,113,113,0.14)' : colors.errorLight,
       borderColor: colors.error,
       iconColor: colors.error,
-      textColor: colors.textPrimary,
+      textColor: isDark ? colors.error : colors.textPrimary,
       Icon: XCircle,
     },
   };

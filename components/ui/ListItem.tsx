@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, HStack, VStack, Text, Box } from '@gluestack-ui/themed';
-import { colors, radii, space } from '@/theme/tokens';
+import { radii, space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import type { LucideIcon } from 'lucide-react-native';
 
 interface ListItemProps {
@@ -24,6 +25,8 @@ export const ListItem: React.FC<ListItemProps> = ({
   onPress,
   isDisabled = false,
 }) => {
+  const { colors } = useThemedColors();
+
   return (
     <Pressable
       onPress={onPress}

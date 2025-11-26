@@ -1,6 +1,7 @@
 import React from 'react';
 import { Input, InputField, InputIcon, InputSlot, VStack, Text } from '@gluestack-ui/themed';
-import { colors, radii, space } from '@/theme/tokens';
+import { radii } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import type { LucideIcon } from 'lucide-react-native';
 
 interface FilledInputProps {
@@ -36,6 +37,8 @@ export const FilledInput: React.FC<FilledInputProps> = ({
   keyboardType = 'default',
   ...props
 }) => {
+  const { colors } = useThemedColors();
+
   return (
     <VStack space="xs">
       {label && (

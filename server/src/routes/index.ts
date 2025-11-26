@@ -8,7 +8,7 @@ import subscriptionRoutes from './subscription.routes';
 import { notificationRoutes } from './notification.routes';
 import { analyticsRoutes } from './analytics.routes';
 // import { billingRoutes } from './billing.routes';
-// import { adminRoutes } from './admin.routes';
+import { adminRoutes } from './admin.routes';
 
 export function setupRoutes(app: Express): void {
   // API version prefix
@@ -25,7 +25,7 @@ export function setupRoutes(app: Express): void {
   app.use(`${API_PREFIX}/notifications`, notificationRoutes);
   app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
   // app.use(`${API_PREFIX}/billing`, billingRoutes);
-  // app.use(`${API_PREFIX}/admin`, adminRoutes);
+  app.use(`${API_PREFIX}/admin`, adminRoutes);
 
   // Temporary root route
   app.get('/', (_req, res) => {

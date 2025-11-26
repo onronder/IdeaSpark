@@ -18,7 +18,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { Platform, Linking } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useToast } from '@/contexts/ToastContext';
 import { iapService, IAPError, IAPErrorType } from '@/services/iapService';
@@ -34,14 +34,18 @@ import {
   InlineNotice,
   ListItem,
 } from '@/components/ui';
-import { colors, space, shadows } from '@/theme/tokens';
+import { space, shadows } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 export default function UpgradeScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const source = (params.source as string) || 'tab';
   const { user } = useAuth();
   const toast = useToast();
   const { handleError, logger } = useErrorHandler('UpgradeScreen');
   const { trackUpgradeViewed } = useAnalytics();
+  const { colors } = useThemedColors();
 
   const [selectedPlan, setSelectedPlan] = useState<'MONTHLY' | 'YEARLY'>('YEARLY');
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +54,7 @@ export default function UpgradeScreen() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
 
   useEffect(() => {
-    trackUpgradeViewed('upgrade_screen');
+    trackUpgradeViewed(source);
     initializeIAP();
     checkSubscriptionStatus();
 
@@ -181,7 +185,12 @@ export default function UpgradeScreen() {
   // If user already has Pro, show manage subscription screen
   if (subscriptionStatus?.isActive) {
     return (
-      <Box flex={1} bg={colors.surfaceMuted}>
+      <Box
+        flex={1}
+        bg={colors.surfaceMuted}
+        accessible
+        accessibilityLabel="Active subscription details"
+      >
         <ScrollView showsVerticalScrollIndicator={false}>
           <HeaderGradient
             greeting="You're a Pro Member!"
@@ -218,7 +227,12 @@ export default function UpgradeScreen() {
                   </Text>
                 )}
 
-                <PrimaryButton onPress={handleManageSubscription} variant="outline">
+                <PrimaryButton
+                  onPress={handleManageSubscription}
+                  variant="outline"
+                  accessibilityRole="button"
+                  accessibilityLabel="Manage subscription in the App Store or Google Play"
+                >
                   Manage Subscription
                 </PrimaryButton>
               </VStack>
@@ -244,7 +258,12 @@ export default function UpgradeScreen() {
 
   // Main upgrade screen
   return (
-    <Box flex={1} bg={colors.surfaceMuted}>
+    <Box
+      flex={1}
+      bg={colors.surfaceMuted}
+      accessible
+      accessibilityLabel="Upgrade to Pro subscription"
+    >
       <ScrollView showsVerticalScrollIndicator={false}>
         <HeaderGradient
           greeting="Unlock Pro Features"
@@ -297,6 +316,8 @@ export default function UpgradeScreen() {
                 onPress={handlePurchase}
                 isLoading={isLoading}
                 isDisabled={isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Start Pro subscription"
               >
                 {isLoading ? 'Processing...' : 'Start Pro Subscription'}
               </PrimaryButton>

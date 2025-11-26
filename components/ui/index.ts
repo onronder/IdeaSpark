@@ -22,3 +22,5 @@ export { HeaderGradient } from './HeaderGradient';
 export { TypingDots } from './TypingDots';
 export { MessageBubble } from './MessageBubble';
 export { ActionSheet } from './ActionSheet';
+export { ChangePasswordModal } from './ChangePasswordModal';
+export { DeleteAccountModal } from './DeleteAccountModal';

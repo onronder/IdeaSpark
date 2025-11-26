@@ -13,6 +13,8 @@ module.exports = {
     }],
   },
   moduleNameMapper: {
+    '^pino-http$': '<rootDir>/src/tests/mocks/pino-http.ts',
+    '^jose$': '<rootDir>/src/tests/mocks/jose.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@config/(.*)$': '<rootDir>/src/config/$1',
     '^@middleware/(.*)$': '<rootDir>/src/middleware/$1',

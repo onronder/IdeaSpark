@@ -60,8 +60,10 @@ const envSchema = z.object({
   AMPLITUDE_API_KEY: z.string().optional(),
   EXPO_PUBLIC_AMPLITUDE_API_KEY: z.string().optional(),
 
-  // Supabase Auth
+  // Supabase
   SUPABASE_JWT_SECRET: z.string().optional(),
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_KEY: z.string().optional(),
 
   // CORS
   CORS_ORIGINS: z.string().default('http://localhost:8081'),
@@ -188,6 +190,8 @@ export const config = {
   // Supabase
   supabase: {
     jwtSecret: env.SUPABASE_JWT_SECRET,
+    url: env.SUPABASE_URL,
+    serviceKey: env.SUPABASE_SERVICE_KEY,
   },
 
   // CORS

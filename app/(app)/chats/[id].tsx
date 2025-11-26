@@ -35,7 +35,8 @@ import {
   TypingDots,
   UsagePill,
 } from '@/components/ui';
-import { colors, space } from '@/theme/tokens';
+import { space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 interface Message {
   id: string;
@@ -55,6 +56,7 @@ export default function ChatScreen() {
   const { isOnline } = useNetworkStatus();
   const insets = useSafeAreaInsets();
   const { trackMessageSent } = useAnalytics();
+  const { colors } = useThemedColors();
 
   const [inputText, setInputText] = useState('');
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
@@ -73,13 +75,19 @@ export default function ChatScreen() {
   useEffect(() => {
     // Refetch messages periodically if waiting for AI response
     const interval = setInterval(() => {
-      if (messages?.some(m => m.role === 'USER' && !messages.find(am => am.createdAt > m.createdAt && am.role === 'ASSISTANT'))) {
+      if (
+        messages?.some(
+          m =>
+            m.role === 'USER' &&
+            !messages.find(am => am.createdAt > m.createdAt && am.role === 'ASSISTANT')
+        )
+      ) {
         refetchMessages();
       }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [messages]);
+  }, [messages, refetchMessages]);
 
   const scrollToBottom = () => {
     if (flatListRef.current && messages && messages.length > 0) {
@@ -120,7 +128,11 @@ export default function ChatScreen() {
               message: "You've used all your free AI replies. Upgrade to Pro for unlimited conversations!",
               action: {
                 label: 'Upgrade Now',
-                onPress: () => router.push('/(app)/upgrade'),
+                onPress: () =>
+                  router.push({
+                    pathname: '/(app)/upgrade',
+                    params: { source: 'chat_quota_reached' },
+                  }),
               },
               duration: 7000,
             });
@@ -136,7 +148,11 @@ export default function ChatScreen() {
           message: err.response?.data?.message || 'You have reached your message limit.',
           action: {
             label: 'Upgrade',
-            onPress: () => router.push('/(app)/upgrade'),
+            onPress: () =>
+              router.push({
+                pathname: '/(app)/upgrade',
+                params: { source: 'chat_quota_error' },
+              }),
           },
           duration: 7000,
         });
@@ -193,8 +209,18 @@ export default function ChatScreen() {
           What specific aspect would you like to explore first?
         </MessageBubble>
       )}
+
+      {/* Lightweight inline loader while messages are being fetched for the first time */}
+      {messagesLoading && (!messages || messages.length === 0) && (
+        <HStack space="sm" alignItems="center" mt={space.md}>
+          <Spinner size="small" color={colors.brand[600]} />
+          <Text color={colors.textSecondary} fontSize="$sm">
+            Loading messages...
+          </Text>
+        </HStack>
+      )}
     </VStack>
-  ), [idea, messages]);
+  ), [idea, messages, messagesLoading, colors]);
 
   const renderFooter = useCallback(() => (
     <Box px={space.lg} pb={space.md}>
@@ -221,7 +247,10 @@ export default function ChatScreen() {
   const isFreePlan = user?.subscriptionPlan === 'FREE';
   const canSendMessage = isOnline && !sendMessage.isPending && !isWaitingForResponse && inputText.trim().length > 0;
 
-  if (ideaLoading || messagesLoading) {
+  // Show a full-screen loader only while the idea itself is loading
+  // and we have no idea data yet. Messages can load lazily once the
+  // shell of the screen is visible.
+  if (ideaLoading && !idea) {
     return (
       <Box flex={1} bg={colors.surfaceMuted} justifyContent="center" alignItems="center">
         <Spinner size="large" color={colors.brand[600]} />
@@ -249,7 +278,12 @@ export default function ChatScreen() {
   }
 
   return (
-    <Box flex={1} bg={colors.surfaceMuted}>
+    <Box
+      flex={1}
+      bg={colors.surfaceMuted}
+      accessible
+      accessibilityLabel="Chat conversation"
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -264,6 +298,8 @@ export default function ChatScreen() {
                   onPress={() => router.back()}
                   p={space.xs}
                   borderRadius={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
                 >
                   <ArrowLeft color={colors.textPrimary} size={24} />
                 </Pressable>
@@ -280,7 +316,14 @@ export default function ChatScreen() {
               {user?.subscriptionPlan === 'PRO' ? (
                 <UsagePill text="PRO" variant="pro" />
               ) : (
-                <Pressable onPress={() => router.push('/(app)/upgrade')}>
+                <Pressable
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(app)/upgrade',
+                      params: { source: 'chat_header_pill' },
+                    })
+                  }
+                >
                   <UsagePill text="Upgrade" variant="warning" />
                 </Pressable>
               )}
@@ -306,7 +349,11 @@ export default function ChatScreen() {
                 message={`Only ${remainingReplies} AI ${remainingReplies === 1 ? 'reply' : 'replies'} left in this session.`}
                 action={{
                   label: 'Upgrade',
-                  onPress: () => router.push('/(app)/upgrade'),
+                  onPress: () =>
+                    router.push({
+                      pathname: '/(app)/upgrade',
+                      params: { source: 'chat_quota_banner' },
+                    }),
                 }}
               />
             </Box>
@@ -322,6 +369,9 @@ export default function ChatScreen() {
             ListFooterComponent={renderFooter}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ flexGrow: 1 }}
+            initialNumToRender={20}
+            maxToRenderPerBatch={20}
+            windowSize={5}
           />
 
           {/* Input Area */}
@@ -345,6 +395,8 @@ export default function ChatScreen() {
                 onPress={handleSend}
                 isDisabled={!canSendMessage}
                 isLoading={sendMessage.isPending || isWaitingForResponse}
+                accessibilityRole="button"
+                accessibilityLabel="Send message"
               >
                 {sendMessage.isPending || isWaitingForResponse ? 'Sending...' : 'Send Message'}
               </PrimaryButton>

@@ -1,6 +1,7 @@
 import { captureException } from '@/sentry.config';
 import { ToastMessages } from '@/contexts/ToastContext';
 import { logger } from '@/hooks/useLogger';
+import { analyticsService } from '@/services/analyticsService';
 
 // Error types for categorization
 export enum ErrorType {
@@ -208,6 +209,18 @@ export function handleError(
 
   if (shouldReport && !__DEV__) {
     captureException(appError, logContext);
+  }
+
+  // Track error in analytics (for all errors, not just reported ones)
+  try {
+    if (appError.severity !== ErrorSeverity.LOW) {
+      analyticsService.trackError({
+        error: appError,
+        context: context?.component || 'unknown',
+      });
+    }
+  } catch {
+    // Never let analytics failures break the main error handler
   }
 
   // Determine toast behavior

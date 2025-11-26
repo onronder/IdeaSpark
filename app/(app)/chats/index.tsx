@@ -17,6 +17,8 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useIdeas } from '@/hooks/useApi';
+import { useQueryClient } from '@tanstack/react-query';
+import apiClient from '@/lib/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   HeaderGradient,
@@ -25,7 +27,8 @@ import {
   SectionCard,
   PrimaryButton,
 } from '@/components/ui';
-import { colors, space } from '@/theme/tokens';
+import { space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 // Map category to emoji
 const CATEGORY_EMOJIS: Record<string, string> = {
@@ -42,8 +45,19 @@ export default function ChatListScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { data: ideas, isLoading, refetch, isRefetching } = useIdeas();
+  const queryClient = useQueryClient();
+  const { colors } = useThemedColors();
 
   const handleIdeaPress = (ideaId: string) => {
+    // Prefetch messages so the chat opens faster
+    queryClient.prefetchQuery({
+      queryKey: ['messages', ideaId],
+      queryFn: async () => {
+        const response = await apiClient.get(`/ideas/${ideaId}/messages`);
+        return response.data || [];
+      },
+    });
+
     router.push(`/(app)/chats/${ideaId}`);
   };
 
@@ -86,12 +100,18 @@ export default function ChatListScreen() {
       <HeaderGradient
         greeting="Your Ideas"
         name="💬"
-        usageText={sortedIdeas.length === 0
-          ? "Start your first idea refinement session"
-          : `${sortedIdeas.length} active idea${sortedIdeas.length !== 1 ? 's' : ''}`
+        usageText={
+          sortedIdeas.length === 0
+            ? 'Start your first idea refinement session'
+            : `${sortedIdeas.length} active idea${sortedIdeas.length !== 1 ? 's' : ''}`
         }
         showUpgradeButton={user?.subscriptionPlan !== 'PRO'}
-        onUpgrade={() => router.push('/(app)/upgrade')}
+        onUpgrade={() =>
+          router.push({
+            pathname: '/(app)/upgrade',
+            params: { source: 'chats_list_header' },
+          })
+        }
       />
 
       <ScrollView

@@ -1,10 +1,31 @@
 import * as Notifications from 'expo-notifications';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('NotificationService');
+
 import * as Device from 'expo-device';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('NotificationService');
+
 import { Platform } from 'react-native';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('NotificationService');
+
 import Constants from 'expo-constants';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('NotificationService');
+
 import api from '@/lib/api';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('NotificationService');
+
 import { NotificationPlatform } from '@ideaspark/types';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('NotificationService');
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '@/hooks/useLogger';
+logger.setComponent('NotificationService');
+
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -47,7 +68,7 @@ class NotificationService {
     if (Device.isDevice) {
       await this.registerForPushNotifications();
     } else {
-      console.warn('Push notifications require a physical device');
+      logger.warn('Push notifications require a physical device');
     }
 
     this.isInitialized = true;
@@ -60,7 +81,7 @@ class NotificationService {
     // Listener for notifications received while app is in foreground
     const receivedListener = Notifications.addNotificationReceivedListener(
       (notification) => {
-        console.log('Notification received:', notification);
+        logger.info('Notification received:', notification);
         if (this.config.onNotificationReceived) {
           this.config.onNotificationReceived(notification);
         }
@@ -70,7 +91,7 @@ class NotificationService {
     // Listener for user tapping on notification
     const responseListener = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        console.log('Notification response:', response);
+        logger.info('Notification response:', response);
         if (this.config.onNotificationResponse) {
           this.config.onNotificationResponse(response);
         }
@@ -102,7 +123,7 @@ class NotificationService {
       }
 
       if (finalStatus !== 'granted') {
-        console.warn('Push notification permission denied');
+        logger.warn('Push notification permission denied');
         return null;
       }
 
@@ -136,10 +157,10 @@ class NotificationService {
         await this.setupAndroidChannels();
       }
 
-      console.log('Push notification token:', token);
+      logger.info('Push notification token:', token);
       return token;
     } catch (error) {
-      console.error('Failed to register for push notifications:', error);
+      logger.error('Failed to register for push notifications:', error);
       return null;
     }
   }
@@ -163,9 +184,9 @@ class NotificationService {
         deviceName,
       });
 
-      console.log('Push token registered with backend');
+      logger.info('Push token registered with backend');
     } catch (error) {
-      console.error('Failed to register token with backend:', error);
+      logger.error('Failed to register token with backend:', error);
       throw error;
     }
   }
@@ -226,7 +247,7 @@ class NotificationService {
         this.pushToken = null;
       }
     } catch (error) {
-      console.error('Failed to unregister push token:', error);
+      logger.error('Failed to unregister push token:', error);
       throw error;
     }
   }
@@ -327,7 +348,7 @@ class NotificationService {
       });
       return response.data.data;
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      logger.error('Failed to fetch notifications:', error);
       throw error;
     }
   }
@@ -339,7 +360,7 @@ class NotificationService {
     try {
       await api.patch(`/notifications/${notificationId}/read`);
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      logger.error('Failed to mark notification as read:', error);
       throw error;
     }
   }
@@ -351,7 +372,7 @@ class NotificationService {
     try {
       await api.patch('/notifications/read-all');
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
+      logger.error('Failed to mark all notifications as read:', error);
       throw error;
     }
   }

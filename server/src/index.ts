@@ -12,6 +12,8 @@ import { connectRedis } from './utils/redis';
 import { gracefulShutdown } from './utils/shutdown';
 import { analyticsService } from './services/analytics.service';
 import { firebaseService } from './services/firebase.service';
+import { emailService } from './services/email.service';
+import { setupSubscriptionExpiryJobs } from './jobs/subscription-expiry.job';
 
 // Initialize Sentry error tracking
 initSentry();
@@ -48,6 +50,22 @@ async function startServer() {
       logger.info('Analytics service initialized');
     } catch (error) {
       logger.warn({ error }, 'Analytics initialization failed - analytics disabled');
+    }
+
+    // Initialize Email Service - OPTIONAL
+    try {
+      await emailService.initialize();
+      logger.info('Email service initialized');
+    } catch (error) {
+      logger.warn({ error }, 'Email service initialization failed - emails disabled');
+    }
+
+    // Setup subscription expiry jobs - OPTIONAL
+    try {
+      await setupSubscriptionExpiryJobs();
+      logger.info('Subscription expiry jobs initialized');
+    } catch (error) {
+      logger.warn({ error }, 'Subscription expiry jobs initialization failed - manual processing required');
     }
 
     // Setup middleware

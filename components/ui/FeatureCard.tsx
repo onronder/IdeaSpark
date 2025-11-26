@@ -1,6 +1,7 @@
 import React from 'react';
 import { HStack, VStack, Text, Box, Pressable } from '@gluestack-ui/themed';
-import { colors, radii, space, shadows } from '@/theme/tokens';
+import { radii, space, shadows } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import type { LucideIcon } from 'lucide-react-native';
 
 interface FeatureCardProps {
@@ -20,6 +21,7 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
   description,
   onPress,
 }) => {
+  const { colors } = useThemedColors();
   const Component = onPress ? Pressable : Box;
   return (
     <Component
@@ -27,28 +29,36 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
       onPress={onPress}
       bg={colors.surface}
       borderRadius={radii.lg}
-      p={space.lg}
+      px={space.md}
+      py={space.md}
       {...shadows.card}
     >
-      <HStack space={space.md} alignItems="flex-start">
+      <HStack space={space.sm} alignItems="center">
         <Box
           bg={colors.brand[50]}
           borderRadius={radii.md}
-          p={space.sm}
+          width={44}
+          height={44}
+          alignItems="center"
+          justifyContent="center"
+          flexShrink={0}
         >
-          <Icon color={colors.brand[600]} size={24} />
+          <Icon color={colors.brand[600]} size={20} strokeWidth={2} />
         </Box>
-        <VStack flex={1} space={space.xxs}>
+        <VStack flex={1} space={space.xxs} flexShrink={1}>
           <Text
             color={colors.textPrimary}
-            fontSize="$lg"
+            fontSize="$md"
             fontWeight="$semibold"
+            numberOfLines={2}
           >
             {title}
           </Text>
           <Text
             color={colors.textSecondary}
             fontSize="$sm"
+            numberOfLines={3}
+            lineHeight="$sm"
           >
             {description}
           </Text>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from '@gluestack-ui/themed';
-import { colors, radii, space } from '@/theme/tokens';
+import { radii, space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
@@ -17,6 +18,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   children,
   timestamp,
 }) => {
+  const { colors } = useThemedColors();
   const isUser = role === 'user';
 
   return (

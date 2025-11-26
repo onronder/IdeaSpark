@@ -69,7 +69,7 @@ describe('Idea Endpoints', () => {
 
       expect(response1.status).toBe(201);
 
-      // Try to create second idea (should fail)
+      // Try to create second idea (should fail with upgrade-required status)
       const response2 = await request(app)
         .post('/api/v1/ideas')
         .set('Authorization', `Bearer ${user.accessToken}`)
@@ -79,8 +79,10 @@ describe('Idea Endpoints', () => {
           category: IdeaCategory.BUSINESS,
         });
 
-      expect(response2.status).toBe(403);
-      expect(response2.body.error.message).toContain('quota exceeded');
+      expect(response2.status).toBe(402);
+      expect(response2.body.success).toBe(false);
+      expect(response2.body.error.code).toBe('IDEA_LIMIT_EXCEEDED');
+      expect(response2.body.error.message).toContain('limit of');
     });
 
     it('should allow unlimited ideas for PRO plan', async () => {

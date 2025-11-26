@@ -29,8 +29,8 @@ This file reflects the *actual* state of the UI/UX implementation as of this aud
 
 - **Profile**
   - Profile screen groups content into `SectionCard`s using `SettingsRow` and `ToggleRow` for:
-    - Account (manage subscription / upgrade, change password placeholder).
-    - Preferences (dark mode placeholder, push notifications, marketing emails, usage analytics).
+    - Account (manage subscription / upgrade, change password, delete account).
+    - Preferences (dark mode, push notifications, marketing emails, usage analytics).
     - Support and danger zone sections.
   - “Usage analytics” toggle is wired to the analytics consent flag (`analyticsConsent` in AsyncStorage) through `useAnalytics.setUserConsent`.
 
@@ -48,8 +48,8 @@ This file reflects the *actual* state of the UI/UX implementation as of this aud
   - Action: **Rewrite `UI_REDESIGN_SUMMARY.md` to describe the current flat, card-based system and the `components/ui` primitives, or clearly mark the old design as deprecated.**
 
 - **Dark mode**
-  - `ThemeContext` exists but Profile’s “Dark Mode” toggle is a placeholder (shows a “Coming Soon” toast and does not switch themes).
-  - Action: **Implement real dark mode using the existing token system (`theme/tokens.ts`) and hook Profile’s toggle to the actual theme switch.**
+  - `ThemeContext` + `useThemedColors` now drive a real dark/light theme across core screens (Auth, Home, Chat, Profile, Upgrade), and Profile’s “Dark Mode” toggle updates both local storage and backend user preferences.
+  - Action: **Do a final visual pass in dark mode (especially banners, pills, and secondary text) to catch any remaining low‑contrast edge cases.**
 
 - **Accessibility**
   - Auth has reasonably good labeling and error messaging; other screens are only partially labeled.
@@ -62,6 +62,10 @@ This file reflects the *actual* state of the UI/UX implementation as of this aud
 - **Micro-interactions**
   - Press states and animations are minimal compared to the original design intent.
   - Action: **Introduce subtle, consistent interactions (press feedback on primary buttons, chips, list items) without reintroducing visual noise.**
+
+- **Legacy auth surface (backend only)**
+  - Node email/password auth routes under `/api/v1/auth/*` and related tests remain in the codebase for legacy/utility use, but the app uses Supabase Auth exclusively.
+  - Action: **Document these as legacy in backend docs and keep them out of client-facing flows to avoid confusion.**
 
 ## Next Steps for Alignment
 
@@ -77,4 +81,3 @@ This file reflects the *actual* state of the UI/UX implementation as of this aud
    - Implement working dark mode.
    - Complete accessibility pass.
    - Add a small, consistent set of micro-interactions (press feedback, maybe light haptics on key actions) to make the app feel premium without becoming visually noisy.
-

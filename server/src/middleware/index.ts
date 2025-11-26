@@ -93,7 +93,12 @@ export function setupMiddleware(app: Express): void {
 
   // Health check endpoints (before auth)
   app.get('/health', (_req, res) => {
-    res.json({ status: 'healthy' });
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: config.env,
+    });
   });
 
   app.get('/ready', async (_req, res) => {

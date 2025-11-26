@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
+import { logger } from '@/hooks/useLogger';
 
 // User type matching our app schema
 interface User {
@@ -13,6 +14,7 @@ interface User {
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  preferences?: any;
 }
 
 interface AuthState {
@@ -27,11 +29,16 @@ interface AuthContextType extends AuthState {
   signUp: (email: string, password: string, name?: string) => Promise<void>;
   signOut: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  resetPasswordWithToken: (accessToken: string, newPassword: string) => Promise<void>;
   updateUser: (user: User) => void;
   bootstrap: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Set logger component name
+logger.setComponent('SupabaseAuthContext');
 
 export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -51,7 +58,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (error) {
-        console.error('Error fetching user profile:', error);
+        logger.error('Error fetching user profile from database', error);
         return null;
       }
 
@@ -64,9 +71,10 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         emailVerified: data.emailVerified || false,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
+        preferences: data.preferences,
       };
     } catch (error) {
-      console.error('Failed to fetch user profile:', error);
+      logger.error('Failed to fetch user profile', error);
       return null;
     }
   }, []);
@@ -95,7 +103,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch (error) {
-      console.error('Bootstrap error:', error);
+      logger.error('Bootstrap error - failed to initialize auth session', error);
       setState({
         user: null,
         session: null,
@@ -125,7 +133,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch (error: any) {
-      console.error('Sign in error:', error);
+      logger.error('Sign in failed', error);
       throw new Error(error.message || 'Failed to sign in');
     }
   }, [fetchUserProfile]);
@@ -165,7 +173,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch (error: any) {
-      console.error('Sign up error:', error);
+      logger.error('Sign up failed', error);
       throw new Error(error.message || 'Failed to sign up');
     }
   }, [fetchUserProfile]);
@@ -182,7 +190,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       });
       router.replace('/(auth)');
     } catch (error) {
-      console.error('Sign out error:', error);
+      logger.error('Sign out failed', error);
       throw error;
     }
   }, []);
@@ -196,10 +204,83 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
     } catch (error: any) {
-      console.error('Forgot password error:', error);
+      logger.error('Forgot password request failed', error);
       throw new Error(error.message || 'Failed to send reset email');
     }
   }, []);
+
+  // Change password while authenticated using Supabase Auth
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      if (!state.user) {
+        throw new Error('You must be signed in to change your password');
+      }
+
+      const email = state.user.email;
+
+      try {
+        // Re-authenticate with current password to verify the user
+        const { error: reauthError } = await supabase.auth.signInWithPassword({
+          email,
+          password: currentPassword,
+        });
+
+        if (reauthError) {
+          logger.error('Change password re-authentication failed', reauthError);
+          throw new Error('Current password is incorrect');
+        }
+
+        // Update password in Supabase
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
+
+        if (updateError) {
+          logger.error('Change password update failed', updateError);
+          throw new Error(updateError.message || 'Failed to change password');
+        }
+
+        logger.info('Password changed successfully via Supabase');
+
+        // For security, sign the user out so they must log in with the new password
+        await signOut();
+      } catch (error: any) {
+        logger.error('Change password failed', error);
+        throw new Error(error.message || 'Failed to change password');
+      }
+    },
+    [state.user, signOut]
+  );
+
+  // Reset password with token
+  const resetPasswordWithToken = useCallback(async (accessToken: string, newPassword: string) => {
+    try {
+      // Set the session using the access token from the reset email
+      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: accessToken, // For password reset flow, access token is used as refresh token
+      });
+
+      if (sessionError) {
+        throw new Error(sessionError.message || 'Invalid or expired reset token');
+      }
+
+      // Update the password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Failed to update password');
+      }
+
+      // Sign out after password reset (user must sign in with new password)
+      await signOut();
+    } catch (error: any) {
+      logger.error('Reset password failed', error);
+      throw new Error(error.message || 'Failed to reset password');
+    }
+  }, [signOut]);
 
   // Update user
   const updateUser = useCallback((user: User) => {
@@ -210,7 +291,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event);
+        logger.info(`Auth state changed: ${event}`, { event, hasSession: !!session });
 
         if (event === 'SIGNED_IN' && session?.user) {
           const userProfile = await fetchUserProfile(session.user);
@@ -249,6 +330,8 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signOut,
     forgotPassword,
+    changePassword,
+    resetPasswordWithToken,
     updateUser,
     bootstrap,
   };

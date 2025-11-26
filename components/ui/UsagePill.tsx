@@ -1,6 +1,7 @@
 import React from 'react';
 import { HStack, Text } from '@gluestack-ui/themed';
-import { colors, radii, space } from '@/theme/tokens';
+import { radii, space } from '@/theme/tokens';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 interface UsagePillProps {
   text: string;
@@ -15,6 +16,7 @@ export const UsagePill: React.FC<UsagePillProps> = ({
   text,
   variant = 'default',
 }) => {
+  const { colors } = useThemedColors();
   const config = {
     default: {
       bg: colors.surfaceMuted,

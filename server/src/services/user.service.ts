@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { config } from '../config';
+import { deleteSupabaseAuthUser } from '../utils/supabaseAdmin';
 
 const userLogger = logger.child({ module: 'user.service' });
 
@@ -100,12 +101,17 @@ export class UserService {
           throw new ApiError(400, 'Email already in use', 'EMAIL_IN_USE');
         }
 
-        // TODO: Send verification email to new address
+        // Send verification email to new address
+        // Note: Email will be updated only after verification
+        // For now, we'll send a notification email
+        const { emailService } = await import('./email.service');
+        // TODO: Implement email change verification flow
+        // For now, just log the change
         userLogger.info({
           userId,
           oldEmail: existingUser.email,
           newEmail: updates.email,
-        }, 'Email change requested');
+        }, 'Email change requested - verification needed');
       }
     }
 
@@ -294,10 +300,15 @@ export class UserService {
   ): Promise<void> {
     const user = await this.getUserProfile(userId);
 
-    // Verify password for security
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
-    if (!isValidPassword) {
-      throw new UnauthorizedError('Invalid password');
+    // Verify password for security for legacy Node-auth users.
+    // For Supabase-authenticated users, passwordHash is an empty string
+    // (Supabase manages credentials), and they are already authenticated
+    // via JWT, so we skip this additional check.
+    if (user.passwordHash && user.passwordHash.length > 0) {
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!isValidPassword) {
+        throw new UnauthorizedError('Invalid password');
+      }
     }
 
     // Perform soft delete
@@ -361,6 +372,11 @@ export class UserService {
     // TODO: Implement background job for permanent deletion
 
     userLogger.info({ userId }, 'Account deleted (soft)');
+
+    // Best-effort deletion of the Supabase auth user. This uses the service
+    // role key when configured; any failures are logged but do not affect
+    // the outcome of the local soft delete.
+    await deleteSupabaseAuthUser(userId);
   }
 
   /**

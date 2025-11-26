@@ -67,7 +67,7 @@ export function useNotifications() {
 
         setIsInitialized(true);
       } catch (err) {
-        console.error('Failed to initialize notifications:', err);
+        logger.error('Failed to initialize notifications:', err);
         setError('Failed to initialize notifications');
       }
     };
@@ -97,7 +97,7 @@ export function useNotifications() {
       await notificationService.setBadgeCount(result.unreadCount);
       setBadgeCount(result.unreadCount);
     } catch (err: any) {
-      console.error('Failed to fetch notifications:', err);
+      logger.error('Failed to fetch notifications:', err);
       setError(err.message || 'Failed to fetch notifications');
     } finally {
       setIsLoading(false);
@@ -119,7 +119,7 @@ export function useNotifications() {
 
       return granted;
     } catch (err) {
-      console.error('Failed to request permissions:', err);
+      logger.error('Failed to request permissions:', err);
       setError('Failed to request notification permissions');
       return false;
     }
@@ -144,7 +144,7 @@ export function useNotifications() {
       setBadgeCount((prev) => Math.max(0, prev - 1));
       await notificationService.setBadgeCount(Math.max(0, badgeCount - 1));
     } catch (err) {
-      console.error('Failed to mark notification as read:', err);
+      logger.error('Failed to mark notification as read:', err);
       setError('Failed to mark notification as read');
     }
   }, [badgeCount]);
@@ -165,7 +165,7 @@ export function useNotifications() {
       setBadgeCount(0);
       await notificationService.setBadgeCount(0);
     } catch (err) {
-      console.error('Failed to mark all notifications as read:', err);
+      logger.error('Failed to mark all notifications as read:', err);
       setError('Failed to mark all notifications as read');
     }
   }, []);
@@ -178,7 +178,7 @@ export function useNotifications() {
       await notificationService.clearAllNotifications();
       setBadgeCount(0);
     } catch (err) {
-      console.error('Failed to clear notifications:', err);
+      logger.error('Failed to clear notifications:', err);
       setError('Failed to clear notifications');
     }
   }, []);
@@ -196,7 +196,7 @@ export function useNotifications() {
       try {
         return await notificationService.scheduleNotification(title, body, data, trigger);
       } catch (err) {
-        console.error('Failed to schedule notification:', err);
+        logger.error('Failed to schedule notification:', err);
         setError('Failed to schedule notification');
         return null;
       }
